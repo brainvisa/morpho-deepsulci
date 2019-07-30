@@ -11,6 +11,7 @@ import pandas as pd
 import json
 import torch
 import sigraph
+import os
 
 
 class SulciDeepTraining(Process):
@@ -40,11 +41,17 @@ class SulciDeepTraining(Process):
         print('-------------------------------')
         print()
         sulci_side_list = set()
-        flt = sigraph.FoldLabelsTranslator()
-        flt.readLabels(self.translation_file)
+        if os.path.exists(self.translation_file):
+            flt = sigraph.FoldLabelsTranslator()
+            flt.readLabels(self.translation_file)
+            trfile = self.translation_file
+        else:
+            trfile = None
+            print('Translation file not found.')
         for gfile in agraphs:
             graph = aims.read(gfile)
-            flt.translate(graph)
+            if trfile is not None:
+                flt.translate(graph)
             for vertex in graph.vertices():
                 if 'name' in vertex:
                     sulci_side_list.add(vertex['name'])
@@ -55,7 +62,7 @@ class SulciDeepTraining(Process):
         # init method
         method = UnetSulciLabeling(
             sulci_side_list, num_filter=64, batch_size=1, cuda=self.cuda,
-            translation_file=self.translation_file)
+            translation_file=trfile)
 
         # Inner cross validation - fix learning rate / momentum
         print()
