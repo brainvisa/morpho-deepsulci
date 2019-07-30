@@ -1,0 +1,48 @@
+{
+    "fom_name": "morpho-deepsulci-1.0",
+
+    "fom_import": ["formats-brainvisa-1.0", "brainvisa-formats-3.2.0",
+                   "shared-brainvisa-1.0"],
+
+    "formats": {
+        "Deep model file": "mdsm"
+    },
+
+    "attribute_definitions" : {
+      "acquisition" : {"default_value" : "default_acquisition"},
+      "analysis" : {"default_value" : "default_analysis"},
+      "sulci_recognition_session" :  {"default_value" : "default_session"},
+      "graph_version": {"default_value": "3.1"},
+    },
+
+    "shared_patterns": {
+      "acquisition": "<center>/<subject>/t1mri/<acquisition>",
+      "analysis": "{acquisition}/<analysis>",
+      "recognition_analysis": "{analysis}/folds/<graph_version>/<sulci_recognition_session>_auto",
+    },
+
+    "processes" : {
+        "SulciDeepLabeling" : {
+            "graph": 
+                [["input:{analysis}/folds/<graph_version>/<side><subject>",
+                    "Graph and data"]],
+            "roots": [["input:{analysis}/segmentation/<side>roots_<subject>","images"]],
+            "param_file": [["shared:todo", "JSON file"]],
+            "model_file": [["shared:machinmachin", "Deep model file"]],
+            "labeled_graph": [["output:{recognition_analysis}/<side><subject>_<sulci_recognition_session>_auto",
+                    "Graph and data"]]
+        },
+        "SulciDeepTraining" : {
+            "translation_file": 
+                [[
+                    "shared:nomenclature/translation/sulci_model_2018",
+                    [
+                        "Label Translation",
+                        "DEF Label Translation"
+                    ]
+                ]],
+            "param_file": [["shared:todo", "JSON file"]],
+            "model_file": [["shared:machinmachin", "Deep model file"]]
+        }
+    }
+}
