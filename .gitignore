@@ -6,19 +6,6 @@ Makefile
 cmake_install.cmake
 install_manifest.txt
 
-# Other brainvisa-cmake files
-/bin/bv_env_host
-/python/brainvisa/maker/installed_files.txt
-/python/brainvisa/maker/version.py
-/CPackConfig.cmake
-/CPackSourceConfig.cmake
-CTestTestfile.cmake
-/debian-control
-/installed_files.txt
-
-# Generated documentation
-/doc/sphinx/bv_maker_help*.rst
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
