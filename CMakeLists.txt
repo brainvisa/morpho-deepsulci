@@ -3,9 +3,24 @@ find_package( brainvisa-cmake REQUIRED )
 BRAINVISA_PROJECT()
 enable_testing()
 
-BRAINVISA_FIND_PACKAGE( axon REQUIRED )
+BRAINVISA_FIND_PACKAGE( capsul REQUIRED )
+BRAINVISA_FIND_PACKAGE( aims-free REQUIRED )
+BRAINVISA_FIND_PACKAGE( sulci-private REQUIRED )
+BRAINVISA_FIND_PACKAGE( axon QUIET )
 BRAINVISA_FIND_PACKAGE( morphologist-gpl QUIET )
-BRAINVISA_DEPENDENCY( RUN DEPENDS "axon" RUN
+
+BRAINVISA_DEPENDENCY( RUN DEPENDS "capsul" RUN
+                      ">= ${capsul_VERSION_MAJOR}.${capsul_VERSION_MINOR}" )
+BRAINVISA_DEPENDENCY( RUN DEPENDS "aims-free" RUN
+                      ">= ${aims-free_VERSION_MAJOR}.${aims-free_VERSION_MINOR}" )
+BRAINVISA_DEPENDENCY( RUN DEPENDS "sulci-private" RUN
+                      ">= ${sulci-private_VERSION_MAJOR}.${sulci-private_VERSION_MINOR}" )
+BRAINVISA_DEPENDENCY( RUN DEPENDS "numpy" RUN )
+BRAINVISA_DEPENDENCY( RUN DEPENDS "pandas" RUN )
+BRAINVISA_DEPENDENCY( RUN DEPENDS "torch" RUN )
+BRAINVISA_DEPENDENCY( RUN DEPENDS "scikit-learn" RUN )
+
+BRAINVISA_DEPENDENCY( RUN RECOMMENDS "axon" RUN
                       ">= ${axon_VERSION_MAJOR}.${axon_VERSION_MINOR}" )
 BRAINVISA_DEPENDENCY( RUN RECOMMENDS "morphologist-gpl" RUN
                       ">= ${morphologist-gpl_VERSION_MAJOR}.${morphologist-gpl_VERSION_MINOR}" )
