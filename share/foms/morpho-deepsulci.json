@@ -23,14 +23,30 @@
 
     "processes" : {
         "SulciDeepLabeling" : {
-            "graph": 
-                [["input:{analysis}/folds/<graph_version>/<side><subject>",
-                    "Graph and data"]],
-            "roots": [["input:{analysis}/segmentation/<side>roots_<subject>","images"]],
-            "param_file": [["//neurospin/lnao/Panabase/lborne/results/sulci_recognition/morphologist_base2018_new/3dunet_3cv_test/left/final_model/parameters", "JSON file"]],
-            "model_file": [["//neurospin/lnao/Panabase/lborne/results/sulci_recognition/morphologist_base2018_new/3dunet_3cv_test/left/final_model/trained_model", "Deep model file"]],
-            "labeled_graph": [["output:{recognition_analysis}/<side><subject>_<sulci_recognition_session>_auto",
-                    "Graph and data"]]
+            "graph": [
+                ["input:{analysis}/folds/<graph_version>/<side><subject>",
+                "Graph and data",
+                {"side": "L", "labelled": "No"}],
+                ["input:{analysis}/folds/<graph_version>/<side><subject>",
+                "Graph and data",
+                {"side": "R", "labelled": "No"}]
+            ],
+            "roots": [
+                ["input:{analysis}/segmentation/<side>roots_<subject>",
+                 "images", {"side":"L"}],
+                ["input:{analysis}/segmentation/<side>roots_<subject>",
+                 "images", {"side":"R"}]
+            ],
+            "param_file": [["shared:todo", "JSON file"]],
+            "model_file": [["shared:machinmachin", "Deep model file"]],
+            "labeled_graph": [
+                ["output:{recognition_analysis}/<side><subject>_<sulci_recognition_session>_auto",
+                    "Graph and data",
+                 {"side": "L", "labelled": "No"}],
+                ["output:{recognition_analysis}/<side><subject>_<sulci_recognition_session>_auto",
+                    "Graph and data",
+                 {"side": "R", "labelled": "No"}]
+            ]
         },
         "SulciDeepTraining" : {
             "translation_file": 
@@ -41,8 +57,8 @@
                         "DEF Label Translation"
                     ]
                 ]],
-            "param_file": [["shared:todo", "JSON file"]],
-            "model_file": [["shared:machinmachin", "Deep model file"]]
+            "param_file": [["shared:<side>_todo", "JSON file"]],
+            "model_file": [["shared:<side>_machinmachin", "Deep model file"]]
         }
     }
 }

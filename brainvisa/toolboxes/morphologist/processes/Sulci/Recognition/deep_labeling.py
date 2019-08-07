@@ -13,3 +13,9 @@ userLevel = 0
 
 base_class = capsul_process.CapsulProcess
 capsul_process = 'deepsulci.sulci_labeling.capsul.labeling'
+
+signature = Signature(
+    'roots', ReadDiskItem('Cortex catchment bassins',
+                          "aims readable volume formats"),
+)
+
