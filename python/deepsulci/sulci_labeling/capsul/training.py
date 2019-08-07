@@ -202,7 +202,7 @@ class SulciDeepTraining(Process):
                     df_notcut['point_z'] = nbck_notcut[:, 2]
                     df_notcut.sort_values(by=['point_x', 'point_y', 'point_z'],
                                           inplace=True)
-                    if len(df['vert_notcut']) != len(list(df_notcut['vert'])):
+                    if len(df) != len(df_notcut)):
                         print()
                         print('ERROR no matches between %s and %s' % (
                             glist_test, glist_notcut_test))
