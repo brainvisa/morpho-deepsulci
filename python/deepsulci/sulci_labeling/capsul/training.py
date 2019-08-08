@@ -202,21 +202,23 @@ class SulciDeepTraining(Process):
                     df_notcut['point_z'] = nbck_notcut[:, 2]
                     df_notcut.sort_values(by=['point_x', 'point_y', 'point_z'],
                                           inplace=True)
-                    if len(df) != len(df_notcut)):
+                    if (len(df) != len(df_notcut)):
                         print()
+                        df.to_csv('/tmp/df.csv')
+                        df_notcut.to_csv('/tmp/df_notcut.csv')
                         print('ERROR no matches between %s and %s' % (
-                            glist_test, glist_notcut_test))
+                            gfile, gfile_notcut))
                         print('--- Files ignored to fix the threshold')
                         print()
-                    else:
-                        df['vert_notcut'] = list(df_notcut['vert'])
-                        df.sort_index(inplace=True)
-                        for threshold in threshold_range:
-                            ypred_cut = cutting(
-                                yscores, df['vert_notcut'], bck2, threshold)
-                            ypred_cut = [sulci_side_list[y] for y in ypred_cut]
-                            dict_scores[threshold].append((1-esi_score(
-                                ytrue, ypred_cut, sslist))*100)
+#                    else:
+#                        df['vert_notcut'] = list(df_notcut['vert'])
+#                        df.sort_index(inplace=True)
+#                        for threshold in threshold_range:
+#                            ypred_cut = cutting(
+#                                yscores, df['vert_notcut'], bck2, threshold)
+#                            ypred_cut = [sulci_side_list[y] for y in ypred_cut]
+#                            dict_scores[threshold].append((1-esi_score(
+#                                ytrue, ypred_cut, sslist))*100)
                 cvi += 1
     
             dict_mscores = {k: np.mean(v) for k, v in dict_scores.iteritems()}
