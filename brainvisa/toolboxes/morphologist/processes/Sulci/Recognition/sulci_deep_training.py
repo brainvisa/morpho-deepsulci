@@ -2,7 +2,7 @@
 from brainvisa.processes import *
 from brainvisa.processing import capsul_process
 
-name = 'Deep training'
+name = 'Sulci Deep CNN training'
 userLevel = 0
 
 base_class = capsul_process.CapsulProcess
