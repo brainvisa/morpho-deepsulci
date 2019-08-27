@@ -18,7 +18,7 @@ BRAINVISA_DEPENDENCY( RUN DEPENDS "sulci-private" RUN
 BRAINVISA_DEPENDENCY( RUN DEPENDS "python-numpy" RUN )
 BRAINVISA_DEPENDENCY( RUN DEPENDS "python-pandas" RUN )
 BRAINVISA_DEPENDENCY( RUN DEPENDS "python-torch" RUN )
-BRAINVISA_DEPENDENCY( RUN DEPENDS "pyton-scikit-learn" RUN )
+BRAINVISA_DEPENDENCY( RUN DEPENDS "python-scikit-learn" RUN )
 
 BRAINVISA_DEPENDENCY( RUN RECOMMENDS "axon" RUN
                       ">= ${axon_VERSION_MAJOR}.${axon_VERSION_MINOR}" )
@@ -34,6 +34,24 @@ BRAINVISA_COPY_PYTHON_DIRECTORY( "${CMAKE_CURRENT_SOURCE_DIR}/python"
 BRAINVISA_COPY_DIRECTORY( "${CMAKE_CURRENT_SOURCE_DIR}/share/foms"
                           share/foms
                           ${PROJECT_NAME} )
+# BRAINVISA_COPY_DIRECTORY(
+#     "${CMAKE_CURRENT_SOURCE_DIR}/share/models"
+#     share/brainvisa-share-${brainvisa-share_VERSION_MAJOR}.${brainvisa-share_VERSION_MINOR}/models
+#     ${PROJECT_NAME} )
+
+set( MDS_MODEL_DOWNLOAD_SOURCE "ftp:///ftp.cea.fr/pub/dsv/anatomist/data" CACHE FILEPATH "URL for Morpho-DeepSulci models data download" )
+
+set( get_models_cmd
+  "${CMAKE_CURRENT_SOURCE_DIR}/scripts/bv_get_morpho_deepsulci_models.py" )
+add_custom_target( get-deepsulci-models ALL
+  COMMAND "${PYTHON_HOST_EXECUTABLE}" "${get_models_cmd}" "-o" "${CMAKE_BINARY_DIR}/share/brainvisa-share-${brainvisa-share_VERSION_MAJOR}.${brainvisa-share_VERSION_MINOR}/models" "-i" "${MDS_MODEL_DOWNLOAD_SOURCE}"
+  "--timeout" "5" "--silent"
+  )
+add_custom_target( install-deepsulci-models
+  COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "${CMAKE_BINARY_DIR}/share/brainvisa-share-${brainvisa-share_VERSION_MAJOR}.${brainvisa-share_VERSION_MINOR}/models/models/models_2019/cnn_models" "$(BRAINVISA_INSTALL_PREFIX)/share/brainvisa-share-${brainvisa-share_VERSION_MAJOR}.${brainvisa-share_VERSION_MINOR}/models/models/models_2019/cnn_models"
+  )
+
+add_dependencies( install-morpho-deepsulci install-deepsulci-models )
 
 # BRAINVISA_COPY_DIRECTORY( "${CMAKE_CURRENT_SOURCE_DIR}/doc"
 #                           "share/doc/morphologist-${${PROJECT_NAME}_VERSION_MAJOR}.${${PROJECT_NAME}_VERSION_MINOR}"

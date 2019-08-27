@@ -37,8 +37,18 @@
                 ["input:{analysis}/segmentation/<side>roots_<subject>",
                  "images", {"side":"R"}]
             ],
-            "param_file": [["shared:todo", "JSON file"]],
-            "model_file": [["shared:machinmachin", "Deep model file"]],
+            "param_file": [
+                ["shared:models/models_2019/cnn_models/sulci_unet_model_params_left",
+                 "JSON file", {"side": "L"}],
+                ["shared:models/models_2019/cnn_models/sulci_unet_model_params_right",
+                 "JSON file", {"side": "R"}]
+            ],
+            "model_file": [
+                ["shared:models/models_2019/cnn_models/sulci_unet_model_left",
+                 "Deep model file", {"side": "L"}],
+                ["shared:models/models_2019/cnn_models/sulci_unet_model_right",
+                 "Deep model file", {"side": "R"}]
+            ],
             "labeled_graph": [
                 ["output:{recognition_analysis}/<side><subject>_<sulci_recognition_session>_auto",
                     "Graph and data",

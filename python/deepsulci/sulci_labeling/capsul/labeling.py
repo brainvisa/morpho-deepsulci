@@ -42,9 +42,6 @@ class SulciDeepLabeling(Process):
 
         # cutting
         # TODO. verifier que ca marche toujours avec les doublons !!
-        np.save('/tmp/test_new/vert.npy', vert)
-        np.save('/tmp/test_new/y_scores.npy', y_scores)
-        np.save('/tmp/test_new/bck2.npy', bck2)
         print('threshold', param['cutting_threshold'])
         y_pred_cut = cutting(
             y_scores, vert, bck2, threshold=param['cutting_threshold'])
@@ -67,7 +64,6 @@ class SulciDeepLabeling(Process):
         data['before_cutting'] = [dict_num[y] for y in y_pred]
         data['after_cutting'] = [dict_num[y] for y in y_pred_cut]
         # TODO. remove saving
-        data.to_csv('/tmp/test_new/result.csv')
         roots = aims.read(self.roots)
         graph, summary = graph_pointcloud.build_split_graph(
             graph, data, roots)
