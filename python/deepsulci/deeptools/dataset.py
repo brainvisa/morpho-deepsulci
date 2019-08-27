@@ -36,29 +36,12 @@ class SulciDataset(Dataset):
         # rotation
         if self.rot_angle is not None:
             center = (np.max(bck, axis=0) - np.min(bck, axis=0))/2
-            transrot = self.random_rotation(center)
-            bck = self.rotation_bck(bck, transrot)
+            transrot = random_rotation(center, self.rot_angle)
+            bck = rotation_bck(bck, transrot)
         # translation
         tr = np.min(bck, axis=0)
         bck -= tr
 
-        return bck
-
-    def random_rotation(self, center):
-        th = random.uniform(0, 2*math.pi)
-        z = random.uniform(-1, 1)
-        direction = [np.sqrt(1-z**2)*np.cos(th), np.sqrt(1-z**2)*np.sin(th), z]
-        transrot = rotation_matrix(
-            np.random.normal(0, self.rot_angle),
-            direction,
-            np.array(center))
-        return transrot
-
-    def rotation_bck(self, bck, transrot):
-        bck_4d = np.vstack([np.transpose(bck), np.ones(len(bck))])
-        bck_4d_trans = np.dot(transrot, bck_4d)
-        bck = np.transpose(bck_4d_trans[:-1])
-        bck = np.array(bck, dtype=int)
         return bck
 
     def __getitem__(self, index):
@@ -143,6 +126,84 @@ class SulciDataset(Dataset):
             return input, labels, dict_data
         else:
             return input, labels
+
+    def __len__(self):
+        return len(self.gfile_list)
+
+
+class PatternDataset(Dataset):
+    def __init__(self, gfile_list, pattern, bb, 
+                 train=True, translation_2mm=None):
+        self.gfile_list = gfile_list
+        self.pattern = pattern
+        self.bb = bb
+        self.size = self.bb[:, 1] - self.bb[:, 0]
+        self.tr = self.bb[:, 0]
+        self.rot_angle = math.pi/40
+        self.tr_sigma = 2
+        self.train = train
+        self.translation_2mm = translation_2mm
+
+    def transform(self, bck):
+        # rotation
+        if self.rot_angle is not None:
+            center = (np.max(bck, axis=0) - np.min(bck, axis=0))/2
+            transrot = random_rotation(center, self.rot_angle)
+            bck = rotation_bck(bck, transrot)
+        # translation
+        tr = [int(round(np.random.normal(0, self.tr_sigma))),
+              int(round(np.random.normal(0, self.tr_sigma))),
+              int(round(np.random.normal(0, self.tr_sigma)))]
+        bck += tr
+
+        return bck
+
+    def __getitem__(self, index):
+        from soma import aims
+        gfile = self.gfile_list[index]
+        side = gfile[gfile.rfind('/')+1:gfile.rfind('/')+2]
+        if self.translation_2mm is None:
+            tr = [0, 0, 0]
+        else:
+            tr = self.translation_2mm
+        graph = aims.read(gfile)
+        trans_tal = aims.GraphManip.talairach(graph)
+        vs = graph['voxel_size']
+        # Extract the bucket and look which sulci are connected
+        bck_types = ['aims_ss', 'aims_bottom', 'aims_other']
+        point_cloud = np.array([[0.0, 0.0, 0.0]])
+        for vertex in graph.vertices():
+            for bck_type in bck_types:
+                if bck_type in vertex:
+                    bucket = vertex[bck_type][0]
+                    for point in bucket.keys():
+                        fpt = [p * v for p, v in zip(point, vs)]
+                        trans_pt = trans_tal.transform(fpt)
+                        if (side == 'R'):
+                            trans_pt[0] *= -1
+                        point_cloud = np.vstack((point_cloud, list(trans_pt)))
+        point_cloud = point_cloud[1:]
+        bck_2mm = [[int(round(p[i]/2)) + tr[i] for i in range(3)] for p in point_cloud]
+        bck= []
+        for p in bck_2mm:
+            if p not in bck:
+                bck.append(p)
+     
+        label = 0
+        if self.train:
+            bck = self.transform(bck)
+
+        # mask
+        bck, _ = mpc.apply_bounding_box(bck, self.bb) ### pas la même fonction que dans la fonction
+        values = np.ones(len(bck))
+        bck -= self.tr
+        bck_T = bck.transpose()
+        input = torch.zeros(
+            1, self.size[0], self.size[1], self.size[2], dtype=torch.float)
+        input[0][bck_T[0], bck_T[1], bck_T[2]] = torch.tensor(
+            values, dtype=torch.float)
+
+        return input, label
 
     def __len__(self):
         return len(self.gfile_list)
@@ -243,3 +304,22 @@ def rotation_matrix(angle, direction, point=None):
         point = np.array(point[:3], dtype=np.float64, copy=False)
         M[:3, 3] = point - np.dot(R, point)
     return M
+
+
+def random_rotation(center, rot_angle):
+    th = random.uniform(0, 2*math.pi)
+    z = random.uniform(-1, 1)
+    direction = [np.sqrt(1-z**2)*np.cos(th), np.sqrt(1-z**2)*np.sin(th), z]
+    transrot = rotation_matrix(
+        np.random.normal(0, rot_angle),
+        direction,
+        np.array(center))
+    return transrot
+
+
+def rotation_bck(bck, transrot):
+    bck_4d = np.vstack([np.transpose(bck), np.ones(len(bck))])
+    bck_4d_trans = np.dot(transrot, bck_4d)
+    bck = np.transpose(bck_4d_trans[:-1])
+    bck = np.array(bck, dtype=int)
+    return bck

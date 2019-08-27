@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
-from ..analyse.stats import esi_score
 from ...deeptools.dataset import SulciDataset
 from ...deeptools.early_stopping import EarlyStopping
 from ...deeptools.models import UNet3D
+from ..analyse.stats import esi_score
 
 import torch
 import torch.nn as nn
