@@ -330,6 +330,9 @@ class UnetSulciLabeling:
             momentum = 0.9
             result_matrix = []
             for lr in self.lr_range:
+                print()
+                print('TEST learning rate', lr)
+                print('======================')
                 result_list = self.test_hyperparameters(
                     lr, momentum, gfile_list_train, gfile_list_test)
                 result_matrix.append(result_list)

@@ -19,9 +19,9 @@ import json
 
 
 class ResnetPatternClassification:
-    def __init__(self, sulcus, cuda=-1, names_filter=None,
+    def __init__(self, pattern=None, cuda=-1, names_filter=None,
                  lr=0.0001, momentum=0.9, batch_size=10):
-        self.sulcus = sulcus
+        self.pattern = pattern
         self.names_filter = names_filter
         self.lr = lr
         self.momentum = momentum
@@ -207,7 +207,7 @@ class ResnetPatternClassification:
         model.load_state_dict(best_model_wts)
         self.trained_model = model
 
-    def labeling(self, gfile_list, result_file):
+    def labeling(self, gfile_list):
         self.trained_model = self.trained_model.to(self.device)
         self.trained_model.eval()
 
@@ -231,89 +231,75 @@ class ResnetPatternClassification:
                 # statistics
                 slist = gfile_list[i*self.batch_size:(i+1)*self.batch_size]
                 result.loc[slist, 'y_pred'] = preds.tolist()
-                result.loc[slist, 'score_0'] = np.array(
-                    outputs.data.tolist())[:, 0]
-                result.loc[slist, 'score_1'] = np.array(
-                    outputs.data.tolist())[:, 1]
+                result.loc[slist, 'y_true'] = labels.tolist()
                 i += 1
-        result.to_csv(result_file)
         print('Labeling took %i s.' % (time.time()-start_time))
 
-    def find_hyperparameters(self, cvo_path, step=0):
+        return result
+
+    def find_hyperparameters(self, result_matrix, param_outfile, step=0):
         # STEP 0
         if step == 0:
-            best_bacc = 0
-            it = 0
-            for lr in self.lr_range:
+            best_acc = 0
+            for lr, result_list in zip(self.lr_range, result_matrix):
                 # compute acc
-                y_true, y_pred = [], []
-                for cvi in range(3):
-                    cvi_path = os.path.join(cvo_path, 'cv_%i' % cvi)
-                    r = pd.read_csv(os.path.join(
-                        cvi_path, 'result_%i%i.csv' % (step, it)), index_col=0)
-                    y_true.extend([y for y in r['y_true']])
-                    y_pred.extend([y for y in r['y_pred']])
-                bacc = balanced_accuracy(y_true, y_pred, [0, 1])
-                print('lr: %f, bacc: %f' % (lr, bacc))
-                if best_bacc < bacc:
-                    best_bacc = bacc
+                acc = []
+                for result in result_list:
+                    acc.append(balanced_accuracy(
+                        result['y_true'], result['y_pred'], [0, 1]))
+                print('lr: %f, acc: %f' % (lr, np.mean(acc)))
+                # save best acc
+                if np.mean(acc) > best_acc:
+                    best_acc = np.mean(acc)
                     best_lr = lr
-                it += 1
             param = {'best_lr0': best_lr,
-                     'best_bacc': best_bacc}
-            with open(os.path.join(cvo_path, 'parameters.txt'), 'w') as f:
+                     'best_acc': best_acc,
+                     'sulci_side_list': self.sulci_side_list}
+            with open(param_outfile, 'w') as f:
                 json.dump(param, f)
         # STEP 1
         elif step == 1:
-            with open(os.path.join(cvo_path, 'parameters.txt')) as f:
+            with open(param_outfile) as f:
                 param = json.load(f)
-            it = 0
             best_lr0 = param['best_lr0']
             best_lr = param['best_lr0']
-            best_bacc = param['best_bacc']
-            for lr in [best_lr0/4, best_lr0/2, best_lr0*2, best_lr0*4]:
+            best_acc = param['best_acc']
+            lr1_range = [best_lr0/4, best_lr0/2, best_lr0*2, best_lr0*4]
+            for lr, result_list in zip(lr1_range, result_matrix):
                 # compute acc
-                y_true, y_pred = [], []
-                for cvi in range(3):
-                    cvi_path = os.path.join(cvo_path, 'cv_%i' % cvi)
-                    r = pd.read_csv(os.path.join(
-                        cvi_path, 'result_%i%i.csv' % (step, it)), index_col=0)
-                    y_true.extend([y for y in r['y_true']])
-                    y_pred.extend([y for y in r['y_pred']])
-                bacc = balanced_accuracy(y_true, y_pred, [0, 1])
-                print('lr: %f, bacc: %f' % (lr, bacc))
-                if best_bacc < bacc:
-                    best_bacc = bacc
+                acc = []
+                for result in result_list:
+                    acc.append(balanced_accuracy(
+                        result['y_true'], result['y_pred'], [0, 1]))
+                print('lr: %f, acc: %f' % (lr, np.mean(acc)))
+                # save best acc
+                if np.mean(acc) > best_acc:
+                    best_acc = np.mean(acc)
                     best_lr = lr
-                it += 1
             param['best_lr1'] = best_lr
-            param['best_bacc'] = best_bacc
-            with open(os.path.join(cvo_path, 'parameters.txt'), 'w') as f:
+            param['best_acc'] = best_acc
+            with open(param_outfile, 'w') as f:
                 json.dump(param, f)
         # STEP 2
         elif step == 2:
-            with open(os.path.join(cvo_path, 'parameters.txt')) as f:
+            with open(param_outfile) as f:
                 param = json.load(f)
-            it = 0
-            best_bacc = param['best_bacc']
+            best_acc = param['best_acc']
             best_momentum = 0.9
-            for momentum in self.momentum_range:
+            for momentum, result_list in zip(self.momentum_range,
+                                             result_matrix):
                 # compute acc
-                y_true, y_pred = [], []
-                for cvi in range(3):
-                    cvi_path = os.path.join(cvo_path, 'cv_%i' % cvi)
-                    r = pd.read_csv(os.path.join(
-                        cvi_path, 'result_%i%i.csv' % (step, it)), index_col=0)
-                    y_true.extend([y for y in r['y_true']])
-                    y_pred.extend([y for y in r['y_pred']])
-                bacc = balanced_accuracy(y_true, y_pred, [0, 1])
-                print('momentum: %f, bacc: %f' % (momentum, bacc))
-                if best_bacc < bacc:
-                    best_bacc = bacc
+                acc = []
+                for result in result_list:
+                    acc.append(balanced_accuracy(
+                        result['y_true'], result['y_pred'], [0, 1]))
+                print('momentum: %f, acc: %f' % (momentum, np.mean(acc)))
+                # save best acc
+                if np.mean(acc) > best_acc:
+                    best_acc = np.mean(acc)
                     best_momentum = momentum
-                it += 1
             param['best_momentum'] = best_momentum
-            with open(os.path.join(cvo_path, 'parameters.txt'), 'w') as f:
+            with open(param_outfile, 'w') as f:
                 json.dump(param, f)
 
             # train with best parameters
@@ -321,61 +307,62 @@ class ResnetPatternClassification:
             self.momentum = param['best_momentum']
 
             print()
-            print('Best parameters: learning rate %f, momentum %f, acc %f' %
-                  (self.lr, self.momentum, param['best_bacc']))
+            print('Best hyperparameters:',
+                  'learning rate %f, momentum %f, acc %f' %
+                  (self.lr, self.momentum, param['best_acc']))
             print()
 
     def cv_inner(self, gfile_list_train, gfile_list_test,
-                 cvi_path, cvo_path, step=0):
+                 param_outfile, step=0):
         # STEP 0
         if step == 0:
             momentum = 0.9
-            i = 0
+            result_matrix = []
             for lr in self.lr_range:
                 print()
                 print('TEST learning rate', lr)
                 print('======================')
-                self.test_hyperparameters(
-                    lr, momentum, step, i,
-                    gfile_list_train, gfile_list_test, cvi_path)
-                i += 1
+                result = self.test_hyperparameters(
+                    lr, momentum,
+                    gfile_list_train, gfile_list_test)
+                result_matrix.append(result)
         # STEP 1
         elif step == 1:
-            with open(os.path.join(cvo_path, 'parameters.txt')) as f:
+            with open(param_outfile) as f:
                 param = json.load(f)
             momentum = 0.9
-            i = 0
             best_lr0 = param['best_lr0']
+            result_matrix = []
             for lr in [best_lr0/4, best_lr0/2, best_lr0*2, best_lr0*4]:
                 print()
                 print('TEST learning rate', lr)
                 print('======================')
-                self.test_hyperparameters(
-                    lr, momentum, step, i,
-                    gfile_list_train, gfile_list_test, cvi_path)
-                i += 1
+                result = self.test_hyperparameters(
+                    lr, momentum,
+                    gfile_list_train, gfile_list_test)
+                result_matrix.append(result)
 
         # STEP 2
         elif step == 2:
-            with open(os.path.join(cvo_path, 'parameters.txt')) as f:
+            with open(param_outfile) as f:
                 param = json.load(f)
-            i = 0
             best_lr1 = param['best_lr1']
+            result_matrix = []
             for momentum in self.momentum_range:
                 print()
                 print('TEST momentum', momentum)
                 print('======================')
-                self.test_hyperparameters(
-                    best_lr1, momentum, step, i,
-                    gfile_list_train, gfile_list_test, cvi_path)
-                i += 1
+                result = self.test_hyperparameters(
+                    best_lr1, momentum,
+                    gfile_list_train, gfile_list_test)
+                result_matrix.append(result)
 
-    def test_hyperparameters(self, lr, momentum, step, it,
-                             gfile_list_train, gfile_list_test, cvi_path):
+        return result_matrix
+
+    def test_hyperparameters(self, lr, momentum,
+                             gfile_list_train, gfile_list_test):
         self.lr = lr
         self.momentum = momentum
-        result_file = os.path.join(
-            cvi_path, 'result_%i%i.csv' % (step, it))
 
         print()
         s = 'TRAIN WITH lr '+str(lr)+' momentum '+str(momentum)
@@ -386,7 +373,9 @@ class ResnetPatternClassification:
         print()
         print('TEST labeling')
         print('=============')
-        self.labeling(gfile_list_test, result_file)
+        result = self.labeling(gfile_list_test)
+
+        return result
 
     def load(self, model_file):
         self.trained_model = resnet18()

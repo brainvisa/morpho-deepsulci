@@ -28,7 +28,7 @@ class SulciDeepLabeling(Process):
             param = json.load(f)
         self.sulci_side_list = param['sulci_side_list']
         method = UnetSulciLabeling(
-            self.sulci_side_list, num_filter=64, batch_size=1, cuda=None)
+            self.sulci_side_list, num_filter=64, batch_size=1, cuda=-1)
         method.load(self.model_file)
 
         dict_sulci = {self.sulci_side_list[i]: i for i in range(len(

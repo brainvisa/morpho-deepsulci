@@ -77,7 +77,6 @@ class SulciDeepTraining(Process):
                 param = json.load(f)
             sulci_side_list = param['sulci_side_list']
         sslist = [ss for ss in sulci_side_list if not ss.startswith('unknown') and not ss.startswith('ventricle')]
-        
 
         # init method
         method = UnetSulciLabeling(
@@ -108,14 +107,14 @@ class SulciDeepTraining(Process):
                     glist_test = agraphs[test]
                     result_m = method.cv_inner(
                         glist_train, glist_test, self.param_file, step)
-    
+
                     if result_matrix is None:
                         result_matrix = result_m
                     else:
                         for i in range(n_cvinner):
                             result_matrix[i].extend(result_m[i])
                     cvi += 1
-    
+
                 print()
                 print('** FIND HYPERPARAMETERS **')
                 print()
@@ -139,7 +138,7 @@ class SulciDeepTraining(Process):
             gfile_list_train, gfile_list_test = train_test_split(
                 self.graphs, test_size=0.1)
             method.learning(gfile_list_train, gfile_list_test)
-    
+
             cpu_model = method.trained_model.to(torch.device('cpu'))
             torch.save(cpu_model.state_dict(), self.model_file)
 
@@ -151,12 +150,12 @@ class SulciDeepTraining(Process):
             print('--- FIX CUTTING THRESHOLD ---')
             print('-----------------------------')
             print()
-    
+
             threshold_range = [50, 100, 150, 200, 250, 300]
             dict_scores = {th: [] for th in threshold_range}
             with open(self.param_file) as f:
                 param = json.load(f)
-    
+
             cvi = 0
             n_cvinner = 3
             kf = KFold(n_splits=n_cvinner, shuffle=True, random_state=0)
@@ -167,7 +166,7 @@ class SulciDeepTraining(Process):
                 glist_train = agraphs[train]
                 glist_test = agraphs[test]
                 glist_notcut_test = agraphs_notcut[test]
-    
+
                 # train model
                 print()
                 print('** TRAIN MODEL **')
@@ -176,14 +175,15 @@ class SulciDeepTraining(Process):
                 method.lr = param['best_lr1']
                 method.momentum = param['best_momentum']
                 method.learning(glist_train, glist_test)
-    
+
                 # test thresholds
                 print()
                 print('** TEST THRESHOLDS **')
                 print()
                 for gfile, gfile_notcut in zip(glist_test, glist_notcut_test):
                     ytrue, yscores, nbck, bck2 = method.labeling(
-                        gfile, rytrue=True, ryscores=True, rnbck=True, rbck2=True)
+                        gfile, rytrue=True, ryscores=True,
+                        rnbck=True, rbck2=True)
                     ytrue = [sulci_side_list[y] for y in ytrue]
                     df = pd.DataFrame()
                     nbck = np.asarray(nbck)
@@ -204,25 +204,23 @@ class SulciDeepTraining(Process):
                                           inplace=True)
                     if (len(df) != len(df_notcut)):
                         print()
-                        df.to_csv('/tmp/df.csv')
-                        df_notcut.to_csv('/tmp/df_notcut.csv')
                         print('ERROR no matches between %s and %s' % (
                             gfile, gfile_notcut))
                         print('--- Files ignored to fix the threshold')
                         print()
-#                    else:
-#                        df['vert_notcut'] = list(df_notcut['vert'])
-#                        df.sort_index(inplace=True)
-#                        for threshold in threshold_range:
-#                            ypred_cut = cutting(
-#                                yscores, df['vert_notcut'], bck2, threshold)
-#                            ypred_cut = [sulci_side_list[y] for y in ypred_cut]
-#                            dict_scores[threshold].append((1-esi_score(
-#                                ytrue, ypred_cut, sslist))*100)
+                    else:
+                        df['vert_notcut'] = list(df_notcut['vert'])
+                        df.sort_index(inplace=True)
+                        for threshold in threshold_range:
+                            ypred_cut = cutting(
+                                yscores, df['vert_notcut'], bck2, threshold)
+                            ypred_cut = [sulci_side_list[y] for y in ypred_cut]
+                            dict_scores[threshold].append((1-esi_score(
+                                ytrue, ypred_cut, sslist))*100)
                 cvi += 1
-    
+
             dict_mscores = {k: np.mean(v) for k, v in dict_scores.iteritems()}
-    
+
             print()
             for k, v in dict_mscores.iteritems():
                 print('threshold: %f, accuracy mean: %f' % (k, v))
@@ -230,6 +228,6 @@ class SulciDeepTraining(Process):
                                              key=dict_mscores.get)
             print()
             print('Best threshold:', param['cutting_threshold'])
-    
+
             with open(self.param_file, 'w') as f:
                 json.dump(param, f)

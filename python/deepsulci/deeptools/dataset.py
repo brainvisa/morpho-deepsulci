@@ -165,12 +165,13 @@ class PatternDataset(Dataset):
 
         # Bucket extraction
         bck_types = ['aims_ss', 'aims_bottom', 'aims_other']
-        label = 0
+        label = np.NaN if self.pattern is None else 0
         bck = []
         for vertex in graph.vertices():
-            if 'name' in vertex:
-                if vertex['name'].startswith(self.pattern):
-                    label = 1
+            if self.pattern is not None:
+                if 'name' in vertex:
+                    if vertex['name'].startswith(self.pattern):
+                        label = 1
             for bck_type in bck_types:
                 if bck_type in vertex:
                     bucket = vertex[bck_type][0]
