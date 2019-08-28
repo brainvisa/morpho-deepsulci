@@ -132,8 +132,7 @@ class SulciDataset(Dataset):
 
 
 class PatternDataset(Dataset):
-    def __init__(self, gfile_list, pattern, bb, 
-                 train=True, translation_2mm=None):
+    def __init__(self, gfile_list, pattern, bb, train=True):
         self.gfile_list = gfile_list
         self.pattern = pattern
         self.bb = bb
@@ -142,7 +141,6 @@ class PatternDataset(Dataset):
         self.rot_angle = math.pi/40
         self.tr_sigma = 2
         self.train = train
-        self.translation_2mm = translation_2mm
 
     def transform(self, bck):
         # rotation
@@ -159,20 +157,20 @@ class PatternDataset(Dataset):
         return bck
 
     def __getitem__(self, index):
-        from soma import aims
         gfile = self.gfile_list[index]
         side = gfile[gfile.rfind('/')+1:gfile.rfind('/')+2]
-        if self.translation_2mm is None:
-            tr = [0, 0, 0]
-        else:
-            tr = self.translation_2mm
         graph = aims.read(gfile)
         trans_tal = aims.GraphManip.talairach(graph)
         vs = graph['voxel_size']
-        # Extract the bucket and look which sulci are connected
+
+        # Bucket extraction
         bck_types = ['aims_ss', 'aims_bottom', 'aims_other']
-        point_cloud = np.array([[0.0, 0.0, 0.0]])
+        label = 0
+        bck = []
         for vertex in graph.vertices():
+            if 'name' in vertex:
+                if vertex['name'].startswith(self.pattern):
+                    label = 1
             for bck_type in bck_types:
                 if bck_type in vertex:
                     bucket = vertex[bck_type][0]
@@ -181,22 +179,17 @@ class PatternDataset(Dataset):
                         trans_pt = trans_tal.transform(fpt)
                         if (side == 'R'):
                             trans_pt[0] *= -1
-                        point_cloud = np.vstack((point_cloud, list(trans_pt)))
-        point_cloud = point_cloud[1:]
-        bck_2mm = [[int(round(p[i]/2)) + tr[i] for i in range(3)] for p in point_cloud]
-        bck= []
-        for p in bck_2mm:
-            if p not in bck:
-                bck.append(p)
-     
-        label = 0
+                        trpt_2mm = [int(round(p/2)) for p in list(trans_pt)]
+                        bck.append(trpt_2mm)
+
+        # Data augmentation
         if self.train:
             bck = self.transform(bck)
 
-        # mask
-        bck, _ = mpc.apply_bounding_box(bck, self.bb) ### pas la même fonction que dans la fonction
-        values = np.ones(len(bck))
+        # Pytorch output
+        bck, _ = apply_bounding_box(bck, self.bb)
         bck -= self.tr
+        values = np.ones(len(bck))
         bck_T = bck.transpose()
         input = torch.zeros(
             1, self.size[0], self.size[1], self.size[2], dtype=torch.float)

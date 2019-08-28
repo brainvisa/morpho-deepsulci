@@ -33,16 +33,12 @@ class UnetSulciLabeling:
     '''
     def __init__(self, sulci_side_list,
                  batch_size=3, cuda=0, lr=0.001, momentum=0.9,
-                 early_stopping=True, num_filter=64, opt='SGD',
-                 data_augmentation=True, translation_file=None):
+                 num_filter=64, translation_file=None):
 
         # training parameters
         self.lr = lr
-        self.early_stopping = early_stopping
         self.momentum = momentum
-        self.data_augmentation = data_augmentation
         self.batch_size = batch_size
-        self.opt = opt
         self.lr_range = [1e-2, 1e-3, 1e-4]
         self.momentum_range = [0.8, 0.7, 0.6, 0.5]
 
@@ -57,7 +53,6 @@ class UnetSulciLabeling:
         # network
         self.num_filter = num_filter
         self.num_channel = 1
-        self.trained_model = None
         self.pretrained_model_wts = None
 
         # device
@@ -70,13 +65,15 @@ class UnetSulciLabeling:
         print('Working on', self.device)
 
     def learning(self, gfile_list_train, gfile_list_test):
-        print('%i + %i samples' %
+        print('TRAINING ON %i + %i samples' %
               (len(gfile_list_train), len(gfile_list_test)))
-        print('%s, batch_size: %i, lr: %f, momentum: %f, num_filter: %i' %
-              (self.opt, self.batch_size, self.lr, self.momentum,
-               self.num_filter))
-        if self.data_augmentation:
-            print('Data augmentation')
+        print()
+        print('PARAMETERS')
+        print('----------')
+        print('batch_size:', self.batch_size)
+        print('learning rate:', self.lr, 'momentum', self.momentum)
+        print('number of filters:', self.num_filter)
+        print()
 
         # DATASET / DATALOADERS
         print('Extract validation dataloader...')
@@ -96,28 +93,19 @@ class UnetSulciLabeling:
             shuffle=False, num_workers=0)
 
         # MODEL
-        if self.trained_model is not None:
-            model = self.trained_model
-            model = model.to(self.device)
-        else:
-            print('3D-UNet')
-            model = UNet3D(self.num_channel, len(self.sulci_side_list),
-                           final_sigmoid=False,
-                           init_channel_number=self.num_filter)
-            model = model.to(self.device)
+        print('Network initialization...')
+        model = UNet3D(self.num_channel, len(self.sulci_side_list),
+                       final_sigmoid=False,
+                       init_channel_number=self.num_filter)
+        model = model.to(self.device)
 
         lr = self.lr
-        if self.opt == 'Adam':
-            optimizer = optim.Adam(model.parameters(), lr=lr)
-        else:
-            optimizer = optim.SGD(model.parameters(), lr=lr,
-                                  momentum=self.momentum, weight_decay=0)
+        optimizer = optim.SGD(model.parameters(), lr=lr,
+                              momentum=self.momentum, weight_decay=0)
 
-        if self.early_stopping:
-            num_epochs = 200 ## tmp !!
-            patience = 2
-            divide_lr = EarlyStopping(patience=patience)
-            es_stop = EarlyStopping(patience=patience*2)
+        patience = 2
+        divide_lr = EarlyStopping(patience=patience)
+        es_stop = EarlyStopping(patience=patience*2)
 
         self.criterion = nn.CrossEntropyLoss(ignore_index=-1)
 
@@ -126,6 +114,7 @@ class UnetSulciLabeling:
         best_model_wts = copy.deepcopy(model.state_dict())
         best_acc, epoch_acc = 0., 0.
         best_epoch = 0
+        num_epochs = 200
         for epoch in range(num_epochs):
             print('Epoch {}/{}'.format(epoch, num_epochs - 1))
             print('-' * 10)
@@ -379,7 +368,6 @@ class UnetSulciLabeling:
                              gfile_list_train, gfile_list_test):
         self.lr = lr
         self.momentum = momentum
-        self.trained_model = None
 
         print()
         s = 'TRAIN WITH lr '+str(lr)+' momentum '+str(momentum)
@@ -402,8 +390,9 @@ class UnetSulciLabeling:
         return result_list
 
     def load(self, model_file):
-        self.trained_model = UNet3D(self.num_channel, len(self.sulci_side_list),
-                                    final_sigmoid=False,
-                                    init_channel_number=self.num_filter)
-        self.trained_model.load_state_dict(torch.load(model_file))
+        self.trained_model = UNet3D(
+            self.num_channel, len(self.sulci_side_list), final_sigmoid=False,
+            init_channel_number=self.num_filter)
+        self.trained_model.load_state_dict(torch.load(
+            model_file, map_location='cpu'))
         self.trained_model = self.trained_model.to(self.device)
