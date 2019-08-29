@@ -132,15 +132,18 @@ class SulciDataset(Dataset):
 
 
 class PatternDataset(Dataset):
-    def __init__(self, gfile_list, pattern, bb, train=True):
+    def __init__(self, gfile_list, pattern, bb, train=True,
+                 dict_bck={}, dict_label={}):
         self.gfile_list = gfile_list
         self.pattern = pattern
-        self.bb = bb
-        self.size = self.bb[:, 1] - self.bb[:, 0]
+        self.bb = np.array(bb)
+        self.size = self.bb[:, 1] - self.bb[:, 0] + 1
         self.tr = self.bb[:, 0]
         self.rot_angle = math.pi/40
         self.tr_sigma = 2
         self.train = train
+        self.dict_bck = dict_bck
+        self.dict_label = dict_label
 
     def transform(self, bck):
         # rotation
@@ -158,30 +161,36 @@ class PatternDataset(Dataset):
 
     def __getitem__(self, index):
         gfile = self.gfile_list[index]
-        side = gfile[gfile.rfind('/')+1:gfile.rfind('/')+2]
-        graph = aims.read(gfile)
-        trans_tal = aims.GraphManip.talairach(graph)
-        vs = graph['voxel_size']
 
         # Bucket extraction
-        bck_types = ['aims_ss', 'aims_bottom', 'aims_other']
-        label = np.NaN if self.pattern is None else 0
-        bck = []
-        for vertex in graph.vertices():
-            if self.pattern is not None:
-                if 'name' in vertex:
-                    if vertex['name'].startswith(self.pattern):
-                        label = 1
-            for bck_type in bck_types:
-                if bck_type in vertex:
-                    bucket = vertex[bck_type][0]
-                    for point in bucket.keys():
-                        fpt = [p * v for p, v in zip(point, vs)]
-                        trans_pt = trans_tal.transform(fpt)
-                        if (side == 'R'):
-                            trans_pt[0] *= -1
-                        trpt_2mm = [int(round(p/2)) for p in list(trans_pt)]
-                        bck.append(trpt_2mm)
+        if gfile in self.dict_bck.keys():
+            bck = self.dict_bck[gfile]
+            label = self.dict_label[gfile]
+        else:
+            side = gfile[gfile.rfind('/')+1:gfile.rfind('/')+2]
+            graph = aims.read(gfile)
+            trans_tal = aims.GraphManip.talairach(graph)
+            vs = graph['voxel_size']
+            bck_types = ['aims_ss', 'aims_bottom', 'aims_other']
+            label = np.NaN if self.pattern is None else 0
+            bck = []
+            for vertex in graph.vertices():
+                if self.pattern is not None:
+                    if 'name' in vertex:
+                        if vertex['name'].startswith(self.pattern):
+                            label = 1
+                for bck_type in bck_types:
+                    if bck_type in vertex:
+                        bucket = vertex[bck_type][0]
+                        for point in bucket.keys():
+                            fpt = [p * v for p, v in zip(point, vs)]
+                            trans_pt = trans_tal.transform(fpt)
+                            if (side == 'R'):
+                                trans_pt[0] *= -1
+                            trpt_2mm = [int(round(p/2)) for p in list(trans_pt)]
+                            bck.append(trpt_2mm)
+            self.dict_bck[gfile] = bck
+            self.dict_label[gfile] = label
 
         # Data augmentation
         if self.train:
