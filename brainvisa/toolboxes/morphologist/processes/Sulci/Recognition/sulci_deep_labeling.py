@@ -34,5 +34,7 @@ def validation():
 signature = Signature(
     'roots', ReadDiskItem('Cortex catchment bassins',
                           "aims readable volume formats"),
+    'skeleton', ReadDiskItem('Cortex skeleton',
+                             "aims readable volume formats"),
 )
 

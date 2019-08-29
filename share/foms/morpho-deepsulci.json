@@ -37,6 +37,12 @@
                 ["input:{analysis}/segmentation/<side>roots_<subject>",
                  "images", {"side":"R"}]
             ],
+            "skeleton": [
+                ["input:{analysis}/segmentation/<side>skeleton_<subject>",
+                 "images", {"side":"L"}],
+                ["input:{analysis}/segmentation/<side>skeleton_<subject>",
+                 "images", {"side":"R"}]
+            ],
             "param_file": [
                 ["shared:models/models_2019/cnn_models/sulci_unet_model_params_left",
                  "JSON file", {"side": "L"}],
