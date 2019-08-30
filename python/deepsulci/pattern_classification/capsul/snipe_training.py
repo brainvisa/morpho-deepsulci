@@ -1,5 +1,5 @@
 from __future__ import print_function
-from ..method.resnet import ResnetPatternClassification
+from ..method.snipe import SnipePatternClassification
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from capsul.api import Process
 from soma import aims
@@ -10,21 +10,20 @@ import json
 import torch
 
 
-class PatternDeepTraining(Process):
+class PatternSnipeTraining(Process):
     def __init__(self):
-        super(PatternDeepTraining, self).__init__()
+        super(PatternSnipeTraining, self).__init__()
         self.add_trait('graphs', traits.List(traits.File(output=False)))
         self.add_trait('pattern', traits.Str(output=False))
         self.add_trait('names_filter', traits.ListStr(output=False))
         self.add_trait('batch_size', traits.Int(
             output=False, optional=True, default=10))
-        self.add_trait('cuda', traits.Int(output=False))
         self.add_trait('step_1', traits.Bool(
             output=False, optional=True, default=True))
         self.add_trait('step_2', traits.Bool(
             output=False, optional=True, default=True))
-        self.add_trait('step_3', traits.Bool(
-            output=False, optional=True, default=True))
+#        self.add_trait('step_3', traits.Bool(
+#            output=False, optional=True, default=True))
 
         self.add_trait('model_file', traits.File(output=True))
         self.add_trait('param_file', traits.File(output=True))
@@ -36,7 +35,7 @@ class PatternDeepTraining(Process):
         if self.step_1:
             print()
             print('--------------------------------')
-            print('---         STEP (1/3)       ---')
+            print('---         STEP (1/2)       ---')
             print('--- EXTRACT DATA FROM GRAPHS ---')
             print('--------------------------------')
             print()
@@ -93,7 +92,7 @@ class PatternDeepTraining(Process):
             dict_bck = param['dict_bck']
             dict_label = param['dict_label']
 
-        method = ResnetPatternClassification(
+        method = SnipePatternClassification(
             bb, pattern=self.pattern, cuda=self.cuda,
             names_filter=self.names_filter,
             dict_bck=dict_bck, dict_label=dict_label)
@@ -101,10 +100,10 @@ class PatternDeepTraining(Process):
         # Inner cross validation - fix learning rate / momentum
         if self.step_2:
             print()
-            print('------------------------------------')
-            print('---           STEP (2/3)         ---')
-            print('--- FIX LEARNING RATE / MOMENTUM ---')
-            print('------------------------------------')
+            print('---------------------------')
+            print('---      STEP (2/2)     ---')
+            print('--- FIX HYPERPARAMETERS ---')
+            print('---------------------------')
             print()
             y = np.asarray([dict_label[g] for g in self.graphs])
             n_cvinner = 3
@@ -114,7 +113,7 @@ class PatternDeepTraining(Process):
                 print()
                 print('**** STEP (%i/3) ****' % step)
                 print()
-                result_matrix = []
+                result_matrix = None
                 cvi = 1
                 for train, test in skf.split(self.graphs, y):
                     print()
@@ -138,19 +137,3 @@ class PatternDeepTraining(Process):
                 param = json.load(f)
             method.lr = param['best_lr1']
             method.momentum = param['best_momentum']
-
-        # Train deep model
-        if self.step_3:
-            print()
-            print('------------------------')
-            print('---    STEP (3/3)    ---')
-            print('--- TRAIN DEEP MODEL ---')
-            print('------------------------')
-            print()
-            method.trained_model = None
-            gfile_list_train, gfile_list_test = train_test_split(
-                self.graphs, test_size=0.1, stratify=y)
-            method.learning(gfile_list_train, gfile_list_test)
-
-            cpu_model = method.trained_model.to(torch.device('cpu'))
-            torch.save(cpu_model.state_dict(), self.model_file)

@@ -212,21 +212,22 @@ class ResnetPatternClassification:
     def find_hyperparameters(self, result_matrix, param_outfile, step=0):
         # STEP 0
         if step == 0:
-            best_acc = 0
-            for lr, result_list in zip(self.lr_range, result_matrix):
+            best_bacc = 0
+            for lr, j in zip(self.lr_range, range(len(self.lr_range))):
                 # compute acc
-                acc = []
-                for result in result_list:
-                    acc.append(balanced_accuracy(
-                        result['y_true'], result['y_pred'], [0, 1]))
-                print('lr: %f, acc: %f' % (lr, np.mean(acc)))
+                y_true, y_pred = [], []
+                for i in range(3):
+                    y_true.extend(list(result_matrix[i][j]['y_true']))
+                    y_pred.extend(list(result_matrix[i][j]['y_pred']))
+                bacc = balanced_accuracy(y_true, y_pred, [0, 1])
+                print('lr: %f, acc: %f' % (lr, bacc))
                 # save best acc
-                if np.mean(acc) > best_acc:
-                    best_acc = np.mean(acc)
+                if np.mean(bacc) > best_bacc:
+                    best_bacc = bacc
                     best_lr = lr
             param = {'best_lr0': best_lr,
-                     'best_acc': best_acc,
-                     'bounding_box': self.bb}
+                     'best_bacc': best_bacc,
+                     'bounding_box': [list(b) for b in self.bb]}
             with open(param_outfile, 'w') as f:
                 json.dump(param, f)
         # STEP 1
@@ -235,40 +236,42 @@ class ResnetPatternClassification:
                 param = json.load(f)
             best_lr0 = param['best_lr0']
             best_lr = param['best_lr0']
-            best_acc = param['best_acc']
+            best_bacc = param['best_bacc']
             lr1_range = [best_lr0/4, best_lr0/2, best_lr0*2, best_lr0*4]
-            for lr, result_list in zip(lr1_range, result_matrix):
+            for lr, j in zip(lr1_range, range(len(lr1_range))):
                 # compute acc
-                acc = []
-                for result in result_list:
-                    acc.append(balanced_accuracy(
-                        result['y_true'], result['y_pred'], [0, 1]))
-                print('lr: %f, acc: %f' % (lr, np.mean(acc)))
+                y_true, y_pred = [], []
+                for i in range(3):
+                    y_true.extend(list(result_matrix[i][j]['y_true']))
+                    y_pred.extend(list(result_matrix[i][j]['y_pred']))
+                bacc = balanced_accuracy(y_true, y_pred, [0, 1])
+                print('lr: %f, bacc: %f' % (lr, bacc))
                 # save best acc
-                if np.mean(acc) > best_acc:
-                    best_acc = np.mean(acc)
+                if bacc > best_bacc:
+                    best_bacc = np.mean(bacc)
                     best_lr = lr
             param['best_lr1'] = best_lr
-            param['best_acc'] = best_acc
+            param['best_bacc'] = best_bacc
             with open(param_outfile, 'w') as f:
                 json.dump(param, f)
         # STEP 2
         elif step == 2:
             with open(param_outfile) as f:
                 param = json.load(f)
-            best_acc = param['best_acc']
+            best_bacc = param['best_bacc']
             best_momentum = 0.9
-            for momentum, result_list in zip(self.momentum_range,
-                                             result_matrix):
+            for momentum, j in zip(self.momentum_range,
+                                   range(len(self.momentum_range))):
                 # compute acc
-                acc = []
-                for result in result_list:
-                    acc.append(balanced_accuracy(
-                        result['y_true'], result['y_pred'], [0, 1]))
-                print('momentum: %f, acc: %f' % (momentum, np.mean(acc)))
+                y_true, y_pred = [], []
+                for i in range(3):
+                    y_true.extend(list(result_matrix[i][j]['y_true']))
+                    y_pred.extend(list(result_matrix[i][j]['y_pred']))
+                bacc = balanced_accuracy(y_true, y_pred, [0, 1])
+                print('momentum: %f, bacc: %f' % (momentum, bacc))
                 # save best acc
-                if np.mean(acc) > best_acc:
-                    best_acc = np.mean(acc)
+                if bacc > best_bacc:
+                    best_bacc = bacc
                     best_momentum = momentum
             param['best_momentum'] = best_momentum
             with open(param_outfile, 'w') as f:
@@ -281,7 +284,7 @@ class ResnetPatternClassification:
             print()
             print('Best hyperparameters:',
                   'learning rate %f, momentum %f, acc %f' %
-                  (self.lr, self.momentum, param['best_acc']))
+                  (self.lr, self.momentum, param['best_bacc']))
             print()
 
     def cv_inner(self, gfile_list_train, gfile_list_test, y_train,
@@ -289,7 +292,7 @@ class ResnetPatternClassification:
         # STEP 0
         if step == 0:
             momentum = 0.9
-            result_matrix = []
+            result_list = []
             for lr in self.lr_range:
                 print()
                 print('TEST learning rate', lr)
@@ -297,14 +300,14 @@ class ResnetPatternClassification:
                 result = self.test_hyperparameters(
                     lr, momentum,
                     gfile_list_train, gfile_list_test, y_train)
-                result_matrix.append(result)
+                result_list.append(result)
         # STEP 1
         elif step == 1:
             with open(param_outfile) as f:
                 param = json.load(f)
             momentum = 0.9
             best_lr0 = param['best_lr0']
-            result_matrix = []
+            result_list = []
             for lr in [best_lr0/4, best_lr0/2, best_lr0*2, best_lr0*4]:
                 print()
                 print('TEST learning rate', lr)
@@ -312,14 +315,14 @@ class ResnetPatternClassification:
                 result = self.test_hyperparameters(
                     lr, momentum,
                     gfile_list_train, gfile_list_test, y_train)
-                result_matrix.append(result)
+                result_list.append(result)
 
         # STEP 2
         elif step == 2:
             with open(param_outfile) as f:
                 param = json.load(f)
             best_lr1 = param['best_lr1']
-            result_matrix = []
+            result_list = []
             for momentum in self.momentum_range:
                 print()
                 print('TEST momentum', momentum)
@@ -327,9 +330,9 @@ class ResnetPatternClassification:
                 result = self.test_hyperparameters(
                     best_lr1, momentum,
                     gfile_list_train, gfile_list_test, y_train)
-                result_matrix.append(result)
+                result_list.append(result)
 
-        return result_matrix
+        return result_list
 
     def test_hyperparameters(self, lr, momentum,
                              gfile_list_train, gfile_list_test, y_train):
