@@ -3,6 +3,7 @@ from ..method.cutting import cutting
 from ..method.unet import UnetSulciLabeling
 from soma.aimsalgo.sulci import graph_pointcloud
 from soma import aims
+from soma import aimsalgo
 from capsul.api import Process
 from collections import Counter
 import traits.api as traits
@@ -19,6 +20,9 @@ class SulciDeepLabeling(Process):
         self.add_trait('roots', traits.File(output=False))
         self.add_trait('param_file', traits.File(output=False))
         self.add_trait('model_file', traits.File(output=False))
+        self.add_trait('rebuild_attributes', traits.Bool(True, output=False))
+        self.add_trait('skeleton', traits.File(output=False))
+        self.add_trait('allow_multithreading', traits.Bool(True, output=False))
 
         self.add_trait('labeled_graph', traits.File(output=True))
 
@@ -67,6 +71,23 @@ class SulciDeepLabeling(Process):
         roots = aims.read(self.roots)
         graph, summary = graph_pointcloud.build_split_graph(
             graph, data, roots)
+
+        print('summary:', summary)
+        if self.rebuild_attributes and summary['cuts'] != 0:
+            skel = aims.read(self.skeleton, 1)
+            inside = 0
+            outside = 11
+            fat = aims.FoldGraphAttributes(skel, graph, None, inside, outside)
+            if hasattr(fat, 'setMaxThreads'):
+                if self.allow_multithreading:
+                    threads = 0
+                else:
+                    threads = 1
+                fat.setMaxThreads(threads)
+            smoothType = aimsalgo.Mesher.LOWPASS
+            fat.mesher().setSmoothing(smoothType, 50, 0.4 )
+            fat.mesher().setDecimation(100., 2., 3., 180.0)
+            fat.doAll()
 
         # save graph
         aims.write(graph, self.labeled_graph)
