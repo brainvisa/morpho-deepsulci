@@ -9,7 +9,7 @@ import time
 
 
 class OptimizedPatchMatch:
-    def __init__(self, patch_size, search_size,
+    def __init__(self, patch_size, search_size=[3, 3, 3],
                  border=10, segmentation=True, k=5, j=4):
         self.patch_size = patch_size
         self.search_size = search_size

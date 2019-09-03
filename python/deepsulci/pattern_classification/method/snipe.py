@@ -87,17 +87,18 @@ class SnipePatternClassification:
             for i in range(3):
                 bb[i, 0] = min(bb[i, 0], int(min(abck[:, i]))-1)
                 bb[i, 1] = max(bb[i, 1], int(max(abck[:, i]))+1)
-        self.translation = [-int(bb[i, 0]/2) + 11 for i in range(3)]
-        self.vol_size = [int((bb[i, 1] - bb[i, 0])/2)+22 for i in range(3)]
+        self.translation = [-int(bb[i, 0]) + 11 for i in range(3)]
+        self.vol_size = [int((bb[i, 1] - bb[i, 0]))+22 for i in range(3)]
 
         # Compute distmap volumes + mask
         fm = aims.FastMarching()
-        vol = aims.Volume_S16(
+        vol_filtered = aims.Volume_S16(
             self.vol_size[0], self.vol_size[1], self.vol_size[2])
         for gfile in gfile_list:
             bck = np.asarray(self.dict_bck[gfile]) + self.translation
-            bck_filtered = np.asarray(self.dict_bck_filetered[gfile])
-            bck_filtered += self.translation
+            bck_filtered = np.asarray(self.dict_bck_filtered[gfile])
+            if len(bck_filtered) != 0:
+                bck_filtered += self.translation
             # compute distmap
             vol = aims.Volume_S16(
                 self.vol_size[0], self.vol_size[1], self.vol_size[2])
@@ -110,9 +111,9 @@ class SnipePatternClassification:
             self.distmap_list.append(distmap)
             # compute mask
             for p in bck_filtered:
-                vol[p[0], p[1], p[2]] = 1
+                vol_filtered[p[0], p[1], p[2]] = 1
         dilation = aimsalgo.MorphoGreyLevel_S16()
-        self.mask = dilation.doDilation(vol, 5)
+        self.mask = dilation.doDilation(vol_filtered, 5)
 
         # Compute proba_list
         y_train = self.label_list
@@ -125,32 +126,41 @@ class SnipePatternClassification:
     def labeling(self, gfile_list):
         y_pred, y_score = [], []
         for gfile in gfile_list:
-            yp, ys = self.subject_labelisation(gfile)
+            yp, ys = self.subject_labeling(gfile)
             y_pred.append(yp)
             y_score.append(ys)
 
         return y_pred, y_score
 
-    def subject_labelisation(self, gfile):
-        # Extract data
+    def subject_labeling(self, gfile):
+        # Extract bucket
         fm = aims.FastMarching()
-        bck_types = ['aims_ss', 'aims_bottom', 'aims_other']
-        sbck = []
-        graph = aims.read(gfile)
-        side = gfile[gfile.rfind('/')+1:gfile.rfind('/')+2]
-        trans_tal = aims.GraphManip.talairach(graph)
-        vs = graph['voxel_size']
-        for vertex in graph.vertices():
-            for bck_type in bck_types:
-                if bck_type in vertex:
-                    bucket = vertex[bck_type][0]
-                    for point in bucket.keys():
-                        fpt = [p * v for p, v in zip(point, vs)]
-                        trans_pt = trans_tal.transform(fpt)
-                        if (side == 'R'):
-                            trans_pt[0] *= -1
-                        trpt_2mm = [int(round(p/2)) for p in list(trans_pt)]
-                        sbck.append(trpt_2mm)
+        if gfile not in self.dict_bck.keys():
+            bck_types = ['aims_ss', 'aims_bottom', 'aims_other']
+            sbck = []
+            graph = aims.read(gfile)
+            side = gfile[gfile.rfind('/')+1:gfile.rfind('/')+2]
+            trans_tal = aims.GraphManip.talairach(graph)
+            vs = graph['voxel_size']
+            for vertex in graph.vertices():
+                for bck_type in bck_types:
+                    if bck_type in vertex:
+                        bucket = vertex[bck_type][0]
+                        for point in bucket.keys():
+                            fpt = [p * v for p, v in zip(point, vs)]
+                            trans_pt = list(trans_tal.transform(fpt))
+                            if (side == 'R'):
+                                trans_pt[0] *= -1
+                            trpt_2mm = [int(round(p/2)) for p in trans_pt]
+                            sbck.append(trpt_2mm)
+        else:
+            sbck = self.dict_bck[gfile]
+        sbck = np.array(sbck)
+        sbck += self.translation
+        sbck = np.asarray(apply_imask(sbck, self.mask))
+
+        # Extract distmap
+        fm = aims.FastMarching()
         vol = aims.Volume_S16(
             self.vol_size[0], self.vol_size[1], self.vol_size[2])
         vol.fill(0)
@@ -160,14 +170,11 @@ class SnipePatternClassification:
         adistmap = np.asarray(sdistmap)
         adistmap[adistmap > pow(10, 10)] = 0
 
-        sbck = np.asarray(apply_imask(sbck, self.mask))
-
         # Compute classification
         grading_list = []
         for ps in self.patch_sizes:
             opm = OptimizedPatchMatch(
-                patch_size=[ps, ps, ps], search_size=self.search_size,
-                segmentation=False, k=self.n_opal, j=4)
+                patch_size=[ps, ps, ps], segmentation=False, k=self.n_opal)
             list_dfann = opm.run(
                 distmap=sdistmap, bck=sbck,
                 distmap_list=self.distmap_list, bck_list=self.bck_list,
@@ -179,6 +186,7 @@ class SnipePatternClassification:
         return ypred, grade
 
     def find_hyperparameters(self, gfile_list, param_outfile):
+        gfile_list = np.asarray(gfile_list)
         best_bacc = 0
         skf = StratifiedKFold(n_splits=3, shuffle=True, random_state=0)
         for n_opal, patch_sizes in itertools.product(
@@ -187,10 +195,11 @@ class SnipePatternClassification:
             self.patch_sizes = patch_sizes
             ps = ''.join([str(i) for i in patch_sizes])
             y_true, y_pred = [], []
-            y = [self.label_list[gfile] for gfile in gfile_list]
+            y = [self.dict_label[gfile] for gfile in gfile_list]
+            y = np.asarray(y)
             for train, test in skf.split(gfile_list, y):
                 self.learning(gfile_list[train])
-                y_pred_test, _ = self.labelisation(gfile_list[test])
+                y_pred_test, _ = self.labeling(gfile_list[test])
                 y_true.extend(y[test])
                 y_pred.extend(y_pred_test)
 
@@ -211,7 +220,7 @@ class SnipePatternClassification:
         self.patch_sizes = self.best_patch_sizes
         param = {'n_opal': self.best_n_opal,
                  'patch_sizes': self.best_patch_sizes,
-                 'pattern': self.parttern,
+                 'pattern': self.pattern,
                  'names_filter': self.names_filter,
                  'best_bacc': best_bacc}
         with open(param_outfile, 'w') as f:
