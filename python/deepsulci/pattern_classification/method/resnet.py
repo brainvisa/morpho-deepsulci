@@ -14,12 +14,17 @@ import pandas as pd
 import time
 import copy
 import json
+import os
 
 
-class ResnetPatternClassification:
+class ResnetPatternClassification(object):
     def __init__(self, bounding_box, pattern=None, cuda=-1, names_filter=None,
-                 lr=0.0001, momentum=0.9, batch_size=10, dict_bck={},
-                 dict_label={}):
+                 lr=0.0001, momentum=0.9, batch_size=10, dict_bck=None,
+                 dict_label=None):
+        if dict_bck is None:
+            dict_bck = {}
+        if dict_label is None:
+            dict_label = {}
         self.bb = bounding_box
         self.pattern = pattern
         self.names_filter = names_filter
@@ -41,7 +46,7 @@ class ResnetPatternClassification:
                 "cuda" if torch.cuda.is_available() else "cpu", index=cuda)
         print('Working on', self.device)
 
-    def learning(self, gfile_list_train, gfile_list_test, y_train):
+    def learning(self, gfile_list_train, gfile_list_test, y_train, y_test):
         print('TRAINING ON %i + %i samples' %
               (len(gfile_list_train), len(gfile_list_test)))
         print()
@@ -56,7 +61,8 @@ class ResnetPatternClassification:
         print('Extract validation dataloader...')
         valdataset = PatternDataset(
             gfile_list_test, self.pattern, self.bb, train=False,
-            dict_bck=self.dict_bck, dict_label=self.dict_label)
+            dict_bck=self.dict_bck, dict_label=self.dict_label,
+            labels=y_test)
         valloader = torch.utils.data.DataLoader(
             valdataset, batch_size=self.batch_size,
             shuffle=False, num_workers=0)
@@ -64,7 +70,8 @@ class ResnetPatternClassification:
         print('Extract train dataloader...')
         traindataset = PatternDataset(
             gfile_list_train, self.pattern, self.bb, train=True,
-            dict_bck=self.dict_bck, dict_label=self.dict_label)
+            dict_bck=self.dict_bck, dict_label=self.dict_label,
+            labels=y_train)
         trainloader = torch.utils.data.DataLoader(
             traindataset, batch_size=self.batch_size,
             shuffle=False, num_workers=0)
@@ -178,13 +185,14 @@ class ResnetPatternClassification:
         model.load_state_dict(best_model_wts)
         self.trained_model = model
 
-    def labeling(self, gfile_list):
+    def labeling(self, gfile_list, labels=None):
         self.trained_model = self.trained_model.to(self.device)
         self.trained_model.eval()
 
         dataset = PatternDataset(
             gfile_list, self.pattern, self.bb, train=False,
-            dict_bck=self.dict_bck, dict_label=self.dict_label)
+            dict_bck=self.dict_bck, dict_label=self.dict_label,
+            labels=labels)
         dataloader = torch.utils.data.DataLoader(
             dataset, batch_size=self.batch_size,
             shuffle=False, num_workers=0)
@@ -225,9 +233,14 @@ class ResnetPatternClassification:
                 if np.mean(bacc) > best_bacc:
                     best_bacc = bacc
                     best_lr = lr
-            param = {'best_lr0': best_lr,
-                     'best_bacc': best_bacc,
-                     'bounding_box': [list(b) for b in self.bb]}
+            if os.path.exists(param_outfile):
+                with open(param_outfile) as f:
+                    param = json.load(f)
+            else:
+                param = {}
+            param['best_lr0'] = best_lr
+            param['best_bacc'] = best_bacc
+            param['bounding_box'] = [list(b) for b in self.bb]
             with open(param_outfile, 'w') as f:
                 json.dump(param, f)
         # STEP 1
@@ -287,7 +300,7 @@ class ResnetPatternClassification:
                   (self.lr, self.momentum, param['best_bacc']))
             print()
 
-    def cv_inner(self, gfile_list_train, gfile_list_test, y_train,
+    def cv_inner(self, gfile_list_train, gfile_list_test, y_train, y_test,
                  param_outfile, step=0):
         # STEP 0
         if step == 0:
@@ -299,7 +312,7 @@ class ResnetPatternClassification:
                 print('======================')
                 result = self.test_hyperparameters(
                     lr, momentum,
-                    gfile_list_train, gfile_list_test, y_train)
+                    gfile_list_train, gfile_list_test, y_train, y_test)
                 result_list.append(result)
         # STEP 1
         elif step == 1:
@@ -314,7 +327,7 @@ class ResnetPatternClassification:
                 print('======================')
                 result = self.test_hyperparameters(
                     lr, momentum,
-                    gfile_list_train, gfile_list_test, y_train)
+                    gfile_list_train, gfile_list_test, y_train, y_test)
                 result_list.append(result)
 
         # STEP 2
@@ -329,13 +342,14 @@ class ResnetPatternClassification:
                 print('======================')
                 result = self.test_hyperparameters(
                     best_lr1, momentum,
-                    gfile_list_train, gfile_list_test, y_train)
+                    gfile_list_train, gfile_list_test, y_train, y_test)
                 result_list.append(result)
 
         return result_list
 
     def test_hyperparameters(self, lr, momentum,
-                             gfile_list_train, gfile_list_test, y_train):
+                             gfile_list_train, gfile_list_test,
+                             y_train, y_test):
         self.lr = lr
         self.momentum = momentum
 
@@ -343,7 +357,7 @@ class ResnetPatternClassification:
         s = 'TRAIN WITH lr '+str(lr)+' momentum '+str(momentum)
         print(s)
         print('='*len(s))
-        self.learning(gfile_list_train, gfile_list_test, y_train)
+        self.learning(gfile_list_train, gfile_list_test, y_train, y_test)
 
         print()
         print('TEST labeling')

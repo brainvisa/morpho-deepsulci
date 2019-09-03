@@ -18,7 +18,7 @@ class PatternDeepLabeling(Process):
         start_time = time.time()
         with open(self.param_file) as f:
             param = json.load(f)
-        method = ResnetPatternClassification(param['bb'])
+        method = ResnetPatternClassification(param['bounding_box'])
         method.load(self.model_file)
         result = method.labeling(self.graphs)
         result.to_csv(self.result_file)

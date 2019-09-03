@@ -133,8 +133,9 @@ class SulciDataset(Dataset):
 
 class PatternDataset(Dataset):
     def __init__(self, gfile_list, pattern, bb, train=True,
-                 dict_bck={}, dict_label={}):
+                 dict_bck={}, dict_label={}, labels=None):
         self.gfile_list = gfile_list
+        self.labels = labels
         self.pattern = pattern
         self.bb = np.array(bb)
         self.size = self.bb[:, 1] - self.bb[:, 0] + 1
@@ -169,16 +170,21 @@ class PatternDataset(Dataset):
         else:
             side = gfile[gfile.rfind('/')+1:gfile.rfind('/')+2]
             graph = aims.read(gfile)
+            print('graph read')
             trans_tal = aims.GraphManip.talairach(graph)
             vs = graph['voxel_size']
             bck_types = ['aims_ss', 'aims_bottom', 'aims_other']
-            label = np.NaN if self.pattern is None else 0
+            if self.labels is not None:
+                label = self.labels[index]
+            else:
+                label = np.NaN if self.pattern is None else 0
             bck = []
             for vertex in graph.vertices():
-                if self.pattern is not None:
-                    if 'name' in vertex:
-                        if vertex['name'].startswith(self.pattern):
-                            label = 1
+                if self.labels is None:
+                    if self.pattern is not None:
+                        if 'name' in vertex:
+                            if vertex['name'].startswith(self.pattern):
+                                label = 1
                 for bck_type in bck_types:
                     if bck_type in vertex:
                         bucket = vertex[bck_type][0]

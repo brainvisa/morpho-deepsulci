@@ -12,15 +12,25 @@ import itertools
 
 class SnipePatternClassification:
     def __init__(self, pattern=None, names_filter=None,
-                 n_opal=10, patch_sizes=[6], num_cpu=1):
+                 n_opal=10, patch_sizes=[6], num_cpu=1,
+                 dict_bck=None, dict_bck_filtered=None, dict_label=None):
         self.pattern = pattern
         self.nfilter = names_filter
         self.n_opal = n_opal
         self.patch_sizes = patch_sizes
-        self.dict_bck = {}
+        if dict_bck is None:
+            self.dict_bck = {}
+        else:
+            self.dict_bck = dict_bck
         self.bck_list = []
-        self.dict_bck_filtered = {}
-        self.dict_label = {}
+        if dict_bck_filtered is None:
+            self.dict_bck_filtered = {}
+        else:
+            self.dict_bck_filtered = dict_bck_filtered
+        if dict_label is None:
+            self.dict_label = {}
+        else:
+            self.dict_label = dict_label
         self.label_list = []
         self.distmap_list = []
 

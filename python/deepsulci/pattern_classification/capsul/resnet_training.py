@@ -8,6 +8,7 @@ import traits.api as traits
 import numpy as np
 import json
 import torch
+import os
 
 
 class PatternDeepTraining(Process):
@@ -82,14 +83,20 @@ class PatternDeepTraining(Process):
                                       axis=0)
 
             # save in parameters file
-            param = {'bb': [list(b) for b in bb], 'dict_bck': dict_bck,
-                     'dict_label': dict_label}
+            if os.path.exists(self.param_file):
+                with open(self.param_file) as f:
+                    param = json.load(f)
+            else:
+                param = {}
+            param['bounding_box'] = [list(b) for b in bb]
+            param['dict_bck'] = dict_bck
+            param['dict_label'] = dict_label
             with open(self.param_file, 'w') as f:
                 json.dump(param, f)
         else:
             with open(self.param_file) as f:
                 param = json.load(f)
-            bb = np.asarray(param['bb'])
+            bb = np.asarray(param['bounding_box'])
             dict_bck = param['dict_bck']
             dict_label = param['dict_label']
 
@@ -123,7 +130,7 @@ class PatternDeepTraining(Process):
                     glist_train = agraphs[train]
                     glist_test = agraphs[test]
                     result_list = method.cv_inner(
-                        glist_train, glist_test, y[train],
+                        glist_train, glist_test, y[train], y[test],
                         self.param_file, step)
                     result_matrix.append(result_list)
                     cvi += 1
@@ -148,9 +155,13 @@ class PatternDeepTraining(Process):
             print('------------------------')
             print()
             method.trained_model = None
+            y = np.asarray([dict_label[g] for g in self.graphs])
             gfile_list_train, gfile_list_test = train_test_split(
                 self.graphs, test_size=0.1, stratify=y)
-            method.learning(gfile_list_train, gfile_list_test)
+            y_train = np.asarray([dict_label[g] for g in gfile_list_train])
+            y_test = np.asarray([dict_label[g] for g in gfile_list_test])
+            method.learning(gfile_list_train, gfile_list_test,
+                            y_train, y_test)
 
             cpu_model = method.trained_model.to(torch.device('cpu'))
             torch.save(cpu_model.state_dict(), self.model_file)
