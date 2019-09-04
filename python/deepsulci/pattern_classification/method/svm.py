@@ -5,6 +5,7 @@ from soma import aims
 from sklearn.neighbors import NearestNeighbors
 from sklearn.model_selection import StratifiedKFold
 from sklearn import preprocessing
+from sklearn.svm import SVC
 from pcl import registration as reg
 
 import numpy as np
@@ -31,14 +32,14 @@ class SVMPatternClassification(object):
                                                [0, 0, 1, z],
                                                [0, 0, 0, 1]])
 
-        self.C_range = np.logspace(-4, -1, 4)
-        self.gamma_range = np.logspace(-1, 3, 5)
+        self.C_range = [0.001, 0.01] #np.logspace(-4, -1, 4)
+        self.gamma_range = [10, 100] #np.logspace(-1, 3, 5)
         self.trans_range = [[0],
-                            [-5, 0, 5],
-                            [-10, 0, 10],
-                            [-20, 0, 20],
-                            [-5, -10, 0, 10, 5],
-                            [-20, -10, 0, 10, -20]]
+                            [-5, 0, 5]] #,
+#                            [-10, 0, 10],
+#                            [-20, 0, 20],
+#                            [-5, -10, 0, 10, 5],
+#                            [-20, -10, 0, 10, -20]]
 
         if dict_bck is None:
             self.dict_bck = {}
@@ -102,10 +103,24 @@ class SVMPatternClassification(object):
                 self.dict_label[gfile] = label
                 self.dict_bck_filtered[gfile] = bck_filtered
                 self.dict_searched_pattern[gfile] = searched_pattern
-            self.bck_filtered_list.append(self.dict_bck_filtered[gfile])
             self.label_list.append(self.dict_label[gfile])
-            self.searched_pattern_list.append(
-                self.dict_searched_pattern[gfile])
+            if len(self.dict_searched_pattern[gfile]) != 0:
+                self.bck_filtered_list.append(self.dict_bck_filtered[gfile])
+                self.searched_pattern_list.append(
+                    self.dict_searched_pattern[gfile])
+
+        # Compute distance matrix
+        X_train = []
+        for gfile in gfile_list:
+            X_train.append(self.compute_distmatrix(self.dict_bck[gfile]))
+
+        # Train SVM
+        self.clf = SVC(C=self.C, gamma=self.gamma, shrinking=True,
+                       class_weight='balanced')
+        X_train = preprocessing.scale(X_train, axis=0)
+        self.scaler = preprocessing.StandardScaler().fit(X_train)
+        X_train = self.scaler.transform(X_train)
+        self.clf.fit(X_train, self.label_list)
 
     def labeling(self, gfile_list):
         y_pred = []
@@ -115,6 +130,7 @@ class SVMPatternClassification(object):
         return y_pred
 
     def subject_labeling(self, gfile):
+        print('Labeling %s' % gfile)
         # Extract bucket
         if gfile not in self.dict_bck.keys():
             bck_types = ['aims_ss', 'aims_bottom', 'aims_other']
@@ -139,22 +155,7 @@ class SVMPatternClassification(object):
         sbck = np.array(sbck)
 
         # Compute distance matrix
-        X_test = []
-        for bck_filtered, searched_pattern in zip(self.bck_filtered_list,
-                                                  self.searched_pattern_list):
-            pc1 = pcl.PointCloud(np.asarray(sbck, dtype=np.float32))
-            # Try different initialization and select the best score
-            dist_min = 100.
-            for trans in self.transrot_init:
-                pc2 = pcl.PointCloud(np.asarray(apply_trans(
-                    trans, bck_filtered), dtype=np.float32))
-                bool, transrot, trans_pc2, d = reg.icp(pc2, pc1)
-                if d < dist_min:
-                    dist_min = d
-                    transrot_min = np.dot(transrot, trans)
-            trans_searched_pattern = apply_trans(
-                transrot_min, searched_pattern)
-            X_test.append(distance_data_to_model(trans_searched_pattern, sbck))
+        X_test = [self.compute_distmatrix(sbck)]
 
         # Compute classification
         X_test = preprocessing.scale(X_test, axis=0)
@@ -170,6 +171,10 @@ class SVMPatternClassification(object):
         skf = StratifiedKFold(n_splits=3, shuffle=True, random_state=0)
         for C, gamma, trans in itertools.product(
                 self.C_range, self.gamma_range, self.trans_range):
+            print('------ TEST PARAMETERS ------')
+            print('C: %r, gamma: %r, trans: %s' %
+                  (C, gamma, str(trans)))
+            print()
             self.C = C
             self.gamma = gamma
             self.transrot_init = []
@@ -184,10 +189,15 @@ class SVMPatternClassification(object):
             y = [self.dict_label[gfile] for gfile in gfile_list]
             y = np.asarray(y)
             for train, test in skf.split(gfile_list, y):
+                print('--- LEARNING (%i samples)' % len(train))
                 self.learning(gfile_list[train])
-                y_pred_test, _ = self.labeling(gfile_list[test])
+                print()
+
+                print('--- LABELING TEST SET (%i samples)' % len(test))
+                y_pred_test = self.labeling(gfile_list[test])
                 y_true.extend(y[test])
                 y_pred.extend(y_pred_test)
+                print()
 
             bacc = balanced_accuracy(y_true, y_pred, [0, 1])
             if bacc > best_bacc:
@@ -195,7 +205,10 @@ class SVMPatternClassification(object):
                 best_C = C
                 best_gamma = gamma
                 best_trans = trans
-            print('%0.2f for C=%r, gamma=%r, tr=%s' % (C, gamma, str(trans)))
+            print('--- RESULT')
+            print('%0.2f for C=%r, gamma=%r, tr=%s' %
+                  (bacc, C, gamma, str(trans)))
+            print()
 
         print()
         print('Best parameters set found on development set:')
@@ -222,6 +235,24 @@ class SVMPatternClassification(object):
         with open(param_outfile, 'w') as f:
             json.dump(param, f)
 
+    def compute_distmatrix(self, sbck):
+        X = []
+        for bck_filtered, searched_pattern in zip(self.bck_filtered_list,
+                                                  self.searched_pattern_list):
+            pc1 = pcl.PointCloud(np.asarray(sbck, dtype=np.float32))
+            # Try different initialization and select the best score
+            dist_min = 100.
+            for trans in self.transrot_init:
+                pc2 = pcl.PointCloud(np.asarray(apply_trans(
+                    trans, bck_filtered), dtype=np.float32))
+                bool, transrot, trans_pc2, d = reg.icp(pc2, pc1)
+                if d < dist_min:
+                    dist_min = d
+                    transrot_min = np.dot(transrot, trans)
+            trans_searched_pattern = apply_trans(
+                transrot_min, searched_pattern)
+            X.append(distance_data_to_model(trans_searched_pattern, sbck))
+        return X
 
 def apply_trans(transrot, data):
     data = np.asarray(data)

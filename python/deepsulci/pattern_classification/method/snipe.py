@@ -34,9 +34,11 @@ class SnipePatternClassification:
         self.label_list = []
         self.distmap_list = []
 
-        self.n_opal_range = [5, 10, 15, 20, 25, 30]
-        self.patch_sizes_range = [[4], [6], [8],
-                                  [4, 6], [6, 8], [4, 8], [4, 6, 8]]
+#        self.n_opal_range = [5, 10, 15, 20, 25, 30]
+        self.n_opal_range = [2, 4]
+#        self.patch_sizes_range = [[4], [6], [8],
+#                                  [4, 6], [6, 8], [4, 8], [4, 6, 8]]
+        self.patch_sizes_range = [[4], [4, 6]]
         self.num_cpu = num_cpu
 
     def learning(self, gfile_list):
@@ -133,6 +135,7 @@ class SnipePatternClassification:
         return y_pred, y_score
 
     def subject_labeling(self, gfile):
+        print('Labeling %s' % gfile)
         # Extract bucket
         fm = aims.FastMarching()
         if gfile not in self.dict_bck.keys():
@@ -173,6 +176,7 @@ class SnipePatternClassification:
         # Compute classification
         grading_list = []
         for ps in self.patch_sizes:
+            print('** PATCH SIZE %i' % ps)
             opm = OptimizedPatchMatch(
                 patch_size=[ps, ps, ps], segmentation=False, k=self.n_opal)
             list_dfann = opm.run(
@@ -191,24 +195,35 @@ class SnipePatternClassification:
         skf = StratifiedKFold(n_splits=3, shuffle=True, random_state=0)
         for n_opal, patch_sizes in itertools.product(
                 self.n_opal_range, self.patch_sizes_range):
+            print('------ TEST PARAMETERS ------')
+            print('number of OPM iterations: %i, patch sizes: %s' %
+                  (n_opal, str(patch_sizes)))
+            print()
             self.n_opal = n_opal
             self.patch_sizes = patch_sizes
-            ps = ''.join([str(i) for i in patch_sizes])
             y_true, y_pred = [], []
             y = [self.dict_label[gfile] for gfile in gfile_list]
             y = np.asarray(y)
             for train, test in skf.split(gfile_list, y):
+                print('--- LEARNING (%i samples)' % len(train))
                 self.learning(gfile_list[train])
+                print()
+
+                print('--- LABELING TEST SET (%i samples)' % len(test))
                 y_pred_test, _ = self.labeling(gfile_list[test])
                 y_true.extend(y[test])
                 y_pred.extend(y_pred_test)
+                print()
 
             bacc = balanced_accuracy(y_true, y_pred, [0, 1])
             if bacc > best_bacc:
                 best_bacc = bacc
                 self.best_n_opal = n_opal
                 self.best_patch_sizes = patch_sizes
-            print('%0.2f for n_opal=%r, patch_sizes=%s' % (bacc, n_opal, ps))
+            print('--- RESULT')
+            print('%0.2f for n_opal=%r, patch_sizes=%s' %
+                  (bacc, n_opal, str(patch_sizes)))
+            print()
 
         print()
         print('Best parameters set found on development set:')

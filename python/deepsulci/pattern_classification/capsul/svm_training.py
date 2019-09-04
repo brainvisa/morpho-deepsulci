@@ -1,5 +1,5 @@
 from __future__ import print_function
-from ..method.snipe import SVMPatternClassification
+from ..method.svm import SVMPatternClassification
 from capsul.api import Process
 from soma import aims
 

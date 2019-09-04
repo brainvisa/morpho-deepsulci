@@ -170,7 +170,6 @@ class PatternDataset(Dataset):
         else:
             side = gfile[gfile.rfind('/')+1:gfile.rfind('/')+2]
             graph = aims.read(gfile)
-            print('graph read')
             trans_tal = aims.GraphManip.talairach(graph)
             vs = graph['voxel_size']
             bck_types = ['aims_ss', 'aims_bottom', 'aims_other']

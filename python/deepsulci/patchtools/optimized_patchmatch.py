@@ -24,22 +24,18 @@ class OptimizedPatchMatch:
     def run(self, distmap, bck, distmap_list, bck_list,
             bckmap_list=[], dnum={}, proba_list=None):
 
-        print('------ Optimized PatchMatch')
         list_df_ann = []
         for k in range(self.k):
             start_time = time.clock()
             df_ann = self.initialization(distmap, bck, dnum,
                                          distmap_list, bck_list, bckmap_list,
                                          proba_list)
-            print('Initialization took %i s' % (time.clock()-start_time))
-
             for j in range(self.j):
-                start_time = time.clock()
                 df_ann = self.iteration(j, df_ann, distmap, distmap_list,
                                         bckmap_list, dnum)
-                print('Iteration (%i/%i) took %i s' %
-                      (j+1, self.j, time.clock()-start_time))
             list_df_ann.append(df_ann)
+            print('OPM (%i/%i) took %i s.' %
+                  (k+1, self.k, time.clock()-start_time))
         return list_df_ann
 
     def initialization(self, distmap, bck, dnum,
