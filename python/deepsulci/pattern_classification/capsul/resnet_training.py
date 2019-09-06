@@ -29,6 +29,7 @@ class PatternDeepTraining(Process):
 
         self.add_trait('model_file', traits.File(output=True))
         self.add_trait('param_file', traits.File(output=True))
+        self.add_trait('traindata_file', traits.File(output=True))
 
     def _run_process(self):
         agraphs = np.array(self.graphs)
@@ -88,17 +89,22 @@ class PatternDeepTraining(Process):
                     param = json.load(f)
             else:
                 param = {}
+            traindata = {}
             param['bounding_box'] = [list(b) for b in bb]
-            param['dict_bck'] = dict_bck
-            param['dict_label'] = dict_label
+            traindata['dict_bck'] = dict_bck
+            traindata['dict_label'] = dict_label
+            with open(self.traindata_file, 'w') as f:
+                json.dump(traindata, f)
             with open(self.param_file, 'w') as f:
                 json.dump(param, f)
         else:
             with open(self.param_file) as f:
                 param = json.load(f)
+            with open(self.traindata_file) as f:
+                traindata = json.load(f)
             bb = np.asarray(param['bounding_box'])
-            dict_bck = param['dict_bck']
-            dict_label = param['dict_label']
+            dict_bck = traindata['dict_bck']
+            dict_label = traindata['dict_label']
 
         method = ResnetPatternClassification(
             bb, pattern=self.pattern, cuda=self.cuda,

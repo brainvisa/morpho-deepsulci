@@ -20,7 +20,7 @@ class SVMPatternClassification(object):
                  dict_bck=None, dict_bck_filtered=None,
                  dict_searched_pattern=None, dict_label=None):
         self.pattern = pattern
-        self.names_filter = names_filter
+        self.nfilter = names_filter
         self.C = C
         self.gamma = gamma
         self.transrot_init = []
@@ -162,7 +162,7 @@ class SVMPatternClassification(object):
         X_test = self.scaler.transform(X_test)
         ypred = self.clf.predict(X_test)
 
-        return ypred
+        return ypred[0]
 
     def find_hyperparameters(self, gfile_list, param_outfile):
         gfile_list = np.asarray(gfile_list)
@@ -228,10 +228,9 @@ class SVMPatternClassification(object):
         param = {'C': best_C,
                  'gamma': best_gamma,
                  'trans': best_trans,
-                 'names_filter': self.names_filter,
+                 'names_filter': self.nfilter,
                  'best_bacc': best_bacc,
-                 'pattern': self.pattern,
-                 'names_filter': self.names_filter}
+                 'pattern': self.pattern}
         with open(param_outfile, 'w') as f:
             json.dump(param, f)
 

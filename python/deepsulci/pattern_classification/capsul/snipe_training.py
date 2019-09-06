@@ -13,6 +13,8 @@ class PatternSnipeTraining(Process):
         self.add_trait('graphs', traits.List(traits.File(output=False)))
         self.add_trait('pattern', traits.Str(output=False))
         self.add_trait('names_filter', traits.ListStr(output=False))
+        self.add_trait('num_cpu', traits.Int(
+            output=False, optional=True, default=1))
         self.add_trait('step_1', traits.Bool(
             output=False, optional=True, default=True))
         self.add_trait('step_2', traits.Bool(
@@ -80,7 +82,7 @@ class PatternSnipeTraining(Process):
         method = SnipePatternClassification(
             pattern=self.pattern, names_filter=self.names_filter,
             dict_bck=dict_bck, dict_bck_filtered=dict_bck_filtered,
-            dict_label=dict_label)
+            dict_label=dict_label, num_cpu=self.num_cpu)
 
         # Inner cross validation - fix learning rate / momentum
         if self.step_2:

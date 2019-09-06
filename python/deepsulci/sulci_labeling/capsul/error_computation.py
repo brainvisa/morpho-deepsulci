@@ -1,25 +1,26 @@
 from __future__ import print_function
-from soma import aims
+from soma import aims, aimsalgo
 from capsul.api import Process
 import traits.api as traits
 import pandas as pd
+import numpy as np
 
 
 class ErrorComputation(Process):
     def __init__(self):
         super(ErrorComputation, self).__init__()
-        self.add_trait('irm', traits.File(output=False))
+        self.add_trait('t1mri', traits.File(output=False))
         self.add_trait('true_graph', traits.File(output=False))
         self.add_trait('labeled_graphs',
                        traits.List(traits.File(output=False)))
         self.add_trait('sulci_side_list',
                        traits.List(traits.Str(output=False)))
 
-        self.add_trait('error_rates', traits.File(output=True))
+        self.add_trait('error_file', traits.File(output=True))
 
     def _run_process(self):
         # Compute voronoi
-        irm = aims.read(self.irm)
+        mri = aims.read(self.t1mri)
         true_graph = aims.read(self.true_graph)
         vs = true_graph['voxel_size']
         vvol = vs[0]*vs[1]*vs[2]
@@ -28,7 +29,7 @@ class ErrorComputation(Process):
         dnames = {k: v+1 for k, v in zip(nlist, range(len(nlist)))}
         dnum = {v+1: k for k, v in zip(nlist, range(len(nlist)))}
         fm = aims.FastMarching()
-        vol = aims.Volume_S16(irm.getSizeX(), irm.getSizeY(), irm.getSizeZ())
+        vol = aims.Volume_S16(mri.getSizeX(), mri.getSizeY(), mri.getSizeZ())
         vol.fill(0)
         for p, n in zip(true_bck, true_names):
             vol[p[0], p[1], p[2]] = dnames[n]
@@ -37,14 +38,14 @@ class ErrorComputation(Process):
         vor = fm.voronoiVol()
 
         # Compute error rates
-        re = pd.DataFrame(index=self.labeled_graphs)
+        re = pd.DataFrame(index=[str(g) for g in self.labeled_graphs])
         for gfile in self.labeled_graphs:
             graph = aims.read(gfile)
             bck, _, labels = extract_data(graph)
             y_pred = [vor[int(round(p[0])),
                           int(round(p[1])),
                           int(round(p[2]))][0] for p in bck]
-            names = [dnum[n] for n in y_pred]
+            names = np.asarray([dnum[n] for n in y_pred])
 
             for ss in self.sulci_side_list:
                 names_ss = labels[names == ss]
@@ -71,20 +72,20 @@ class ErrorComputation(Process):
             re.ix[gfile, 'ESI'] = sum([re.ix[gfile, 'ESI_'+str(ss)]
                                       for ss in self.sulci_side_list])
 
-        re.to_csv(self.erro_rates)
+        re.to_csv(self.error_file)
 
-        print('Mean ESI: %r' % re['ESI'].mean())
-        print('Max ESI: %r' % re['ESI'].max())
+        print('Mean ESI: %.3f' % re['ESI'].mean())
+        print('Max ESI: %.3f' % re['ESI'].max())
         print()
         for ss in self.sulci_side_list:
-            print('%s Elocal mean: %r, max: %r' %
+            print('%s Elocal mean: %.3f, max: %.3f' %
                   (ss, re['Elocal_'+str(ss)].mean(),
                    re['Elocal_'+str(ss)].max()))
 
 
 def extract_data(graph):
     bck_types = ['aims_ss', 'aims_bottom', 'aims_other']
-    names, labels, bck = [], []
+    names, labels, bck = [], [], []
     for vertex in graph.vertices():
         if 'name' in vertex:
             name = vertex['name']
@@ -101,4 +102,4 @@ def extract_data(graph):
                     bck.append(list(point))
                     names.append(name)
                     labels.append(label)
-    return bck, names, labels
+    return np.asarray(bck), np.asarray(names), np.asarray(labels)
