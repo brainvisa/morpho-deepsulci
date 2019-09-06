@@ -2,7 +2,7 @@
     "fom_name": "morpho-deepsulci-1.0",
 
     "fom_import": ["formats-brainvisa-1.0", "brainvisa-formats-3.2.0",
-                   "shared-brainvisa-1.0"],
+                   "shared-brainvisa-1.0", "morphologist-auto-1.0"],
 
     "formats": {
         "Deep model file": "mdsm"
@@ -13,6 +13,7 @@
       "analysis" : {"default_value" : "default_analysis"},
       "sulci_recognition_session" :  {"default_value" : "default_session"},
       "graph_version": {"default_value": "3.1"},
+      "model_id": {"default_value": "custom_model"}
     },
 
     "shared_patterns": {
@@ -73,8 +74,18 @@
                         "DEF Label Translation"
                     ]
                 ]],
-            "param_file": [["shared:<side>_todo", "JSON file"]],
-            "model_file": [["shared:<side>_machinmachin", "Deep model file"]]
+            "param_file": [
+                ["output:models/<model_id>/cnn_models/sulci_unet_model_params_left",
+                 "JSON file", {"side": "L"}],
+                ["output:models/<model_id>/cnn_models/sulci_unet_model_params_right",
+                 "JSON file", {"side": "R"}]
+            ],
+            "model_file": [
+                ["output:models/<model_id>/cnn_models/sulci_unet_model_left",
+                 "Deep model file", {"side": "L"}],
+                ["output:models/<model_id>/cnn_models/sulci_unet_model_right",
+                 "Deep model file", {"side": "R"}]
+            ]
         }
     }
 }
