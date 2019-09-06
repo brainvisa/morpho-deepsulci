@@ -16,7 +16,7 @@ import copy
 import json
 
 
-class UnetSulciLabeling:
+class UnetSulciLabeling(object):
     ''' 3D U-Net for automatic sulci recognition
 
     Parameters

@@ -4,13 +4,14 @@ from ..analyse.stats import balanced_accuracy
 from ...patchtools.optimized_patchmatch import OptimizedPatchMatch
 from soma import aims, aimsalgo
 from sklearn.model_selection import StratifiedKFold
+from joblib import Parallel, delayed
 
 import numpy as np
 import json
 import itertools
 
 
-class SnipePatternClassification:
+class SnipePatternClassification(object):
     def __init__(self, pattern=None, names_filter=None,
                  n_opal=10, patch_sizes=[6], num_cpu=1,
                  dict_bck=None, dict_bck_filtered=None, dict_label=None):
@@ -115,7 +116,8 @@ class SnipePatternClassification:
             for p in bck_filtered:
                 vol_filtered[p[0], p[1], p[2]] = 1
         dilation = aimsalgo.MorphoGreyLevel_S16()
-        self.mask = dilation.doDilation(vol_filtered, 5)
+        mask = dilation.doDilation(vol_filtered, 5)
+        self.amask = np.asarray(mask)
 
         # Compute proba_list
         y_train = self.label_list
@@ -127,11 +129,20 @@ class SnipePatternClassification:
 
     def labeling(self, gfile_list):
         y_pred, y_score = [], []
-        for gfile in gfile_list:
-            yp, ys = self.subject_labeling(gfile)
-            y_pred.append(yp)
-            y_score.append(ys)
-
+        if self.num_cpu < 2:
+            y_pred, y_score = [], []
+            for gfile in gfile_list:
+                yp, ys = self.subject_labeling(gfile)
+                y_pred.append(yp)
+                y_score.append(ys)
+        else:
+            admap_list = [np.array(d) for d in self.distmap_list]
+            result = Parallel(n_jobs=self.num_cpu)(delayed(subject_labeling)(
+                g, self.dict_bck, self.translation, self.amask, self.vol_size,
+                self.n_opal, admap_list, self.bck_list, self.proba_list,
+                self.label_list, self.patch_sizes) for g in gfile_list)
+            y_pred = [y[0] for y in result]
+            y_score = [y[1] for y in result]
         return y_pred, y_score
 
     def subject_labeling(self, gfile):
@@ -160,7 +171,7 @@ class SnipePatternClassification:
             sbck = self.dict_bck[gfile]
         sbck = np.array(sbck)
         sbck += self.translation
-        sbck = np.asarray(apply_imask(sbck, self.mask))
+        sbck = np.asarray(apply_imask(sbck, self.amask))
 
         # Extract distmap
         fm = aims.FastMarching()
@@ -236,16 +247,16 @@ class SnipePatternClassification:
         param = {'n_opal': self.best_n_opal,
                  'patch_sizes': self.best_patch_sizes,
                  'pattern': self.pattern,
-                 'names_filter': self.names_filter,
-                 'best_bacc': best_bacc}
+                 'names_filter': self.nfilter,
+                 'best_bacc': best_bacc,
+                 'gfile_list': gfile_list}
         with open(param_outfile, 'w') as f:
             json.dump(param, f)
 
 
-def apply_imask(ipoints, mask):
+def apply_imask(ipoints, amask):
     ipoints, _ = apply_bounding_box(
-        ipoints, np.transpose([[0, 0, 0], np.array(mask.getSize())[:3]-1]))
-    amask = np.asarray(mask)
+        ipoints, np.transpose([[0, 0, 0], np.array(amask.shape)[:3]-1]))    
     values = amask[:, :, :, 0][ipoints.T[0], ipoints.T[1], ipoints.T[2]]
     return ipoints[values == 1]
 
@@ -284,3 +295,62 @@ def grading(points, list_dfann, grade_list):
                 v -= w
         grad_list[idx] = v / np.sum(weights)
     return grad_list
+
+
+def subject_labeling(gfile, dict_bck, translation, mask, vol_size, n_opal,
+                     distmap_list, bck_list, proba_list, label_list,
+                     patch_sizes):
+    print('Labeling %s' % gfile)
+    distmap_list = [aims.Volume(d) for d in distmap_list]
+    # Extract bucket
+    fm = aims.FastMarching()
+    if gfile not in dict_bck.keys():
+        bck_types = ['aims_ss', 'aims_bottom', 'aims_other']
+        sbck = []
+        graph = aims.read(gfile)
+        side = gfile[gfile.rfind('/')+1:gfile.rfind('/')+2]
+        trans_tal = aims.GraphManip.talairach(graph)
+        vs = graph['voxel_size']
+        for vertex in graph.vertices():
+            for bck_type in bck_types:
+                if bck_type in vertex:
+                    bucket = vertex[bck_type][0]
+                    for point in bucket.keys():
+                        fpt = [p * v for p, v in zip(point, vs)]
+                        trans_pt = list(trans_tal.transform(fpt))
+                        if (side == 'R'):
+                            trans_pt[0] *= -1
+                        trpt_2mm = [int(round(p/2)) for p in trans_pt]
+                        sbck.append(trpt_2mm)
+    else:
+        sbck = dict_bck[gfile]
+    sbck = np.array(sbck)
+    sbck += translation
+    sbck = np.asarray(apply_imask(sbck, mask))
+
+    # Extract distmap
+    fm = aims.FastMarching()
+    vol = aims.Volume_S16(
+        vol_size[0], vol_size[1], vol_size[2])
+    vol.fill(0)
+    for p in sbck:
+        vol[p[0], p[1], p[2]] = 1
+    sdistmap = fm.doit(vol, [0], [1])
+    adistmap = np.asarray(sdistmap)
+    adistmap[adistmap > pow(10, 10)] = 0
+
+    # Compute classification
+    grading_list = []
+    for ps in patch_sizes:
+        print('** PATCH SIZE %i' % ps)
+        opm = OptimizedPatchMatch(
+            patch_size=[ps, ps, ps], segmentation=False, k=n_opal)
+        list_dfann = opm.run(
+            distmap=sdistmap, bck=sbck,
+            distmap_list=distmap_list, bck_list=bck_list,
+            proba_list=proba_list)
+        grading_list.append(grading(sbck, list_dfann, label_list))
+
+    grade = np.nanmean(np.mean(grading_list, axis=0))
+    ypred = 1 if grade > 0 else 0
+    return ypred, grade
