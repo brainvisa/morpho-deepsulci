@@ -1,4 +1,5 @@
 from __future__ import print_function
+from ...deeptools.dataset import extract_data
 from ..method.unet import UnetSulciLabeling
 from ..method.cutting import cutting
 from ..analyse.stats import esi_score
@@ -27,16 +28,17 @@ class SulciDeepTraining(Process):
         self.add_trait('translation_file', traits.File(
             output=False, optional=True))
         self.add_trait('step_1', traits.Bool(
-            output=False, optional=True, default=True))
+            True, output=False, optional=True))
         self.add_trait('step_2', traits.Bool(
-            output=False, optional=True, default=True))
+            True, output=False, optional=True))
         self.add_trait('step_3', traits.Bool(
-            output=False, optional=True, default=True))
+            True, output=False, optional=True))
         self.add_trait('step_4', traits.Bool(
-            output=False, optional=True, default=True))
+            True, output=False, optional=True))
 
         self.add_trait('model_file', traits.File(output=True))
         self.add_trait('param_file', traits.File(output=True))
+        self.add_trait('traindata_file', traits.File(output=True))
 
     def _run_process(self):
         agraphs = np.asarray(self.graphs)
@@ -51,37 +53,53 @@ class SulciDeepTraining(Process):
 
         # compute sulci_side_list
         if self.step_1:
-            print('-------------------------------')
-            print('---        STEP (1/4)       ---')
-            print('--- EXTRACT SULCI SIDE LIST ---')
-            print('-------------------------------')
             print()
+            print('--------------------------------')
+            print('---         STEP (1/4)       ---')
+            print('--- EXTRACT DATA FROM GRAPHS ---')
+            print('--------------------------------')
+            print()
+
             sulci_side_list = set()
-            for gfile in agraphs:
+            dict_bck2, dict_names = {}, {}
+            for gfile in self.graphs:
                 graph = aims.read(gfile)
                 if trfile is not None:
                     flt.translate(graph)
-                for vertex in graph.vertices():
-                    if 'name' in vertex:
-                        sulci_side_list.add(vertex['name'])
+                data = extract_data(graph)
+                dict_bck2[gfile] = data['bck2']
+                dict_names[gfile] = data['names']
+                for n in data['names']:
+                    sulci_side_list.add(n)
             sulci_side_list = sorted(list(sulci_side_list))
-            print('sulci side list:', sulci_side_list)
 
             with open(self.param_file) as f:
                 param = json.load(f)
             param['sulci_side_list'] = [str(s) for s in sulci_side_list]
             with open(self.param_file, 'w') as f:
                 json.dump(param, f)
+
+            traindata = {}
+            traindata['dict_bck2'] = dict_bck2
+            traindata['dict_names'] = dict_names
+            with open(self.traindata_file, 'w') as f:
+                json.dump(traindata, f)
         else:
             with open(self.param_file) as f:
                 param = json.load(f)
             sulci_side_list = param['sulci_side_list']
-        sslist = [ss for ss in sulci_side_list if not ss.startswith('unknown') and not ss.startswith('ventricle')]
+
+            with open(self.traindata_file) as f:
+                traindata = json.load(f)
+            dict_bck2 = traindata['dict_bck2']
+            dict_names = traindata['dict_names']
 
         # init method
+        sslist = [ss for ss in sulci_side_list if not ss.startswith('unknown') and not ss.startswith('ventricle')]
         method = UnetSulciLabeling(
             sulci_side_list, num_filter=64, batch_size=1, cuda=self.cuda,
-            translation_file=trfile)
+            translation_file=trfile,
+            dict_bck2=dict_bck2, dict_names=dict_names)
 
         # Inner cross validation - fix learning rate / momentum
         if self.step_2:

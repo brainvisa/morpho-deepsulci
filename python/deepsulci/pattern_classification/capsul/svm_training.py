@@ -1,9 +1,11 @@
 from __future__ import print_function
+from ...deeptools.dataset import extract_data
 from ..method.svm import SVMPatternClassification
 from capsul.api import Process
 from soma import aims
 
 import traits.api as traits
+import numpy as np
 import json
 
 
@@ -14,12 +16,16 @@ class PatternSVMTraining(Process):
         self.add_trait('pattern', traits.Str(output=False))
         self.add_trait('names_filter', traits.ListStr(output=False))
         self.add_trait('step_1', traits.Bool(
-            output=False, optional=True, default=True))
+            True, output=False, optional=True))
         self.add_trait('step_2', traits.Bool(
-            output=False, optional=True, default=True))
+            True, output=False, optional=True))
+        self.add_trait('step_3', traits.Bool(
+            True, output=False, optional=True))
 
         self.add_trait('traindata_file', traits.File(output=True))
         self.add_trait('param_file', traits.File(output=True))
+        self.add_trait('clf_file', traits.File(output=True))
+        self.add_trait('scaler_file', traits.File(output=True))
 
     def _run_process(self):
 
@@ -27,47 +33,31 @@ class PatternSVMTraining(Process):
         if self.step_1:
             print()
             print('--------------------------------')
-            print('---         STEP (1/2)       ---')
+            print('---         STEP (1/3)       ---')
             print('--- EXTRACT DATA FROM GRAPHS ---')
             print('--------------------------------')
             print()
 
-            bck_types = ['aims_ss', 'aims_bottom', 'aims_other']
             dict_label, dict_bck, dict_bck_filtered = {}, {}, {}
             dict_searched_pattern = {}
             for gfile in self.graphs:
                 print(gfile)
                 graph = aims.read(gfile)
                 side = gfile[gfile.rfind('/')+1:gfile.rfind('/')+2]
-                trans_tal = aims.GraphManip.talairach(graph)
-                vs = graph['voxel_size']
+                data = extract_data(graph, flip=True if side == 'R' else False)
                 label = 0
-                bck, bck_filtered, searched_pattern = [], [], []
-                for vertex in graph.vertices():
-                    if 'name' in vertex:
-                        name = vertex['name']
-                        if name.startswith(self.pattern):
-                            label = 1
-                        fn = sum([1 for n in self.names_filter if name.startswith(n)])
-                        fp = 1 if name.startswith(self.pattern) else 0
-                        for bck_type in bck_types:
-                            if bck_type in vertex:
-                                bucket = vertex[bck_type][0]
-                                for point in bucket.keys():
-                                    fpt = [p * v for p, v in zip(point, vs)]
-                                    trpt = list(trans_tal.transform(fpt))
-                                    if (side == 'R'):
-                                        trpt[0] *= -1
-                                    trpt_2mm = [int(round(p/2)) for p in trpt]
-                                    bck.append(trpt_2mm)
-                                    if fn:
-                                        bck_filtered.append(trpt_2mm)
-                                    if fp:
-                                        searched_pattern.append(trpt_2mm)
+                fn, fp = [], []
+                for name in data['names']:
+                    if name.startswith(self.pattern):
+                        label = 1
+                    fn.append(sum([1 for n in self.names_filter if name.startswith(n)]))
+                    fp.append(1 if name.startswith(self.pattern) else 0)
+                bck_filtered = np.asarray(data['bck'])[np.asarray(fn) == 1]
+                spattern = np.asarray(data['bck'])[np.asarray(fp) == 1]
                 dict_label[gfile] = label
-                dict_bck[gfile] = bck
-                dict_bck_filtered[gfile] = bck_filtered
-                dict_searched_pattern[gfile] = searched_pattern
+                dict_bck[gfile] = data['bck']
+                dict_bck_filtered[gfile] = [list(p) for p in bck_filtered]
+                dict_searched_pattern[gfile] = [list(p) for p in spattern]
 
             # save in parameters file
             param = {'dict_bck': dict_bck,
@@ -93,8 +83,24 @@ class PatternSVMTraining(Process):
         if self.step_2:
             print()
             print('---------------------------')
-            print('---      STEP (2/2)     ---')
+            print('---      STEP (2/3)     ---')
             print('--- FIX HYPERPARAMETERS ---')
             print('---------------------------')
             print()
             method.find_hyperparameters(self.graphs, self.param_file)
+        else:
+            with open(self.param_file) as f:
+                param = json.load(f)
+            method.C = param['C']
+            method.gamma = param['gamma']
+            method.transrot_init = param['trans']
+
+        if self.step_3:
+            print()
+            print('--------------------------')
+            print('---      STEP (3/3)    ---')
+            print('--- SAVE TRAINED MODEL ---')
+            print('--------------------------')
+            print()
+            method.learning(self.graphs)
+            method.save(self.clf_file, self.scaler_file)

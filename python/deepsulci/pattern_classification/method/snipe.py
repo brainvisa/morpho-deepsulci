@@ -2,6 +2,7 @@
 from __future__ import print_function
 from ..analyse.stats import balanced_accuracy
 from ...patchtools.optimized_patchmatch import OptimizedPatchMatch
+from ...deeptools.dataset import extract_data
 from soma import aims, aimsalgo
 from sklearn.model_selection import StratifiedKFold
 from joblib import Parallel, delayed
@@ -19,19 +20,10 @@ class SnipePatternClassification(object):
         self.nfilter = names_filter
         self.n_opal = n_opal
         self.patch_sizes = patch_sizes
-        if dict_bck is None:
-            self.dict_bck = {}
-        else:
-            self.dict_bck = dict_bck
+        self.dict_bck = {} if dict_bck is None else dict_bck
         self.bck_list = []
-        if dict_bck_filtered is None:
-            self.dict_bck_filtered = {}
-        else:
-            self.dict_bck_filtered = dict_bck_filtered
-        if dict_label is None:
-            self.dict_label = {}
-        else:
-            self.dict_label = dict_label
+        self.dict_bck_filtered = {} if dict_bck_filtered is None else dict_bck_filtered
+        self.dict_label = {} if dict_label is None else dict_label
         self.label_list = []
         self.distmap_list = []
 
@@ -45,39 +37,21 @@ class SnipePatternClassification(object):
     def learning(self, gfile_list):
         self.bck_list, self.label_list, self.distmap_list = [], [], []
         # Extract buckets and labels from the graphs
-        bck_types = ['aims_ss', 'aims_bottom', 'aims_other']
-        label = np.NaN if self.pattern is None else 0
         for gfile in gfile_list:
             if gfile not in self.dict_bck.keys():
                 graph = aims.read(gfile)
                 side = gfile[gfile.rfind('/')+1:gfile.rfind('/')+2]
-                trans_tal = aims.GraphManip.talairach(graph)
-                vs = graph['voxel_size']
+                data = extract_data(graph, flip=True if side == 'R' else False)
                 label = 0
-                bck = []
-                bck_filtered = []
-                for vertex in graph.vertices():
-                    if 'name' in vertex:
-                        n = vertex['name']
-                        if n.startswith(self.pattern):
-                            label = 1
-                        nf = sum([1 for m in self.nfilter if n.startswith(m)])
-                        for bck_type in bck_types:
-                            if bck_type in vertex:
-                                bucket = vertex[bck_type][0]
-                                for point in bucket.keys():
-                                    fpt = [p * v for p, v in zip(point, vs)]
-                                    trpt = list(trans_tal.transform(fpt))
-                                    if (side == 'R'):
-                                        trpt[0] *= -1
-                                    trpt_2mm = [int(round(p/2)) for p in trpt]
-                                    if trpt_2mm not in bck:
-                                        bck.append(trpt_2mm)
-                                        if nf:
-                                            bck_filtered.append(trpt_2mm)
+                fn = []
+                for name in data['names']:
+                    if name.startswith(self.pattern):
+                        label = 1
+                    fn.append(sum([1 for n in self.names_filter if name.startswith(n)]))
+                bck_filtered = np.asarray(data['bck2'])[np.asarray(fn) == 1]
 
                 # save data
-                self.dict_bck[gfile] = bck
+                self.dict_bck[gfile] = data['bck2']
                 self.dict_label[gfile] = label
                 self.dict_bck_filtered[gfile] = bck_filtered
             self.bck_list.append(self.dict_bck[gfile])
@@ -150,23 +124,10 @@ class SnipePatternClassification(object):
         # Extract bucket
         fm = aims.FastMarching()
         if gfile not in self.dict_bck.keys():
-            bck_types = ['aims_ss', 'aims_bottom', 'aims_other']
-            sbck = []
             graph = aims.read(gfile)
             side = gfile[gfile.rfind('/')+1:gfile.rfind('/')+2]
-            trans_tal = aims.GraphManip.talairach(graph)
-            vs = graph['voxel_size']
-            for vertex in graph.vertices():
-                for bck_type in bck_types:
-                    if bck_type in vertex:
-                        bucket = vertex[bck_type][0]
-                        for point in bucket.keys():
-                            fpt = [p * v for p, v in zip(point, vs)]
-                            trans_pt = list(trans_tal.transform(fpt))
-                            if (side == 'R'):
-                                trans_pt[0] *= -1
-                            trpt_2mm = [int(round(p/2)) for p in trans_pt]
-                            sbck.append(trpt_2mm)
+            data = extract_data(graph, flip=True if side == 'R' else False)
+            sbck = data['bck2']
         else:
             sbck = self.dict_bck[gfile]
         sbck = np.array(sbck)
@@ -305,23 +266,10 @@ def subject_labeling(gfile, dict_bck, translation, mask, vol_size, n_opal,
     # Extract bucket
     fm = aims.FastMarching()
     if gfile not in dict_bck.keys():
-        bck_types = ['aims_ss', 'aims_bottom', 'aims_other']
-        sbck = []
         graph = aims.read(gfile)
         side = gfile[gfile.rfind('/')+1:gfile.rfind('/')+2]
-        trans_tal = aims.GraphManip.talairach(graph)
-        vs = graph['voxel_size']
-        for vertex in graph.vertices():
-            for bck_type in bck_types:
-                if bck_type in vertex:
-                    bucket = vertex[bck_type][0]
-                    for point in bucket.keys():
-                        fpt = [p * v for p, v in zip(point, vs)]
-                        trans_pt = list(trans_tal.transform(fpt))
-                        if (side == 'R'):
-                            trans_pt[0] *= -1
-                        trpt_2mm = [int(round(p/2)) for p in trans_pt]
-                        sbck.append(trpt_2mm)
+        data = extract_data(graph, flip=True if side == 'R' else False)
+        sbck = data['bck2']
     else:
         sbck = dict_bck[gfile]
     sbck = np.array(sbck)

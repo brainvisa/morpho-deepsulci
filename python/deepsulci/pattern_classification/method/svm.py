@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
+from ...deeptools.dataset import extract_data
 from ..analyse.stats import balanced_accuracy
 from soma import aims
 from sklearn.neighbors import NearestNeighbors
@@ -12,6 +13,7 @@ import numpy as np
 import json
 import itertools
 import pcl
+import joblib
 
 
 class SVMPatternClassification(object):
@@ -65,44 +67,27 @@ class SVMPatternClassification(object):
     def learning(self, gfile_list):
         self.bck_filtered_list, self.label_list, self.distmap_list = [], [], []
         # Extract buckets and labels from the graphs
-        bck_types = ['aims_ss', 'aims_bottom', 'aims_other']
         label = np.NaN if self.pattern is None else 0
         for gfile in gfile_list:
             if gfile not in self.dict_bck.keys():
                 graph = aims.read(gfile)
                 side = gfile[gfile.rfind('/')+1:gfile.rfind('/')+2]
-                trans_tal = aims.GraphManip.talairach(graph)
-                vs = graph['voxel_size']
+                data = extract_data(graph, flip=True if side == 'R' else False)
                 label = 0
-                bck, bck_filtered, searched_pattern = [], [], []
-                for vertex in graph.vertices():
-                    if 'name' in vertex:
-                        n = vertex['name']
-                        if n.startswith(self.pattern):
-                            label = 1
-                        nf = sum([1 for m in self.nfilter if n.startswith(m)])
-                        pf = 1 if n.startswith(self.pattern) else 0
-                        for bck_type in bck_types:
-                            if bck_type in vertex:
-                                bucket = vertex[bck_type][0]
-                                for point in bucket.keys():
-                                    fpt = [p * v for p, v in zip(point, vs)]
-                                    trpt = list(trans_tal.transform(fpt))
-                                    if (side == 'R'):
-                                        trpt[0] *= -1
-                                    trpt_2mm = [int(round(p/2)) for p in trpt]
-                                    if trpt_2mm not in bck:
-                                        bck.append(trpt_2mm)
-                                        if nf:
-                                            bck_filtered.append(trpt_2mm)
-                                        if pf:
-                                            searched_pattern.append(trpt_2mm)
+                fn, fp = [], []
+                for name in data['names']:
+                    if name.startswith(self.pattern):
+                        label = 1
+                    fn.append(sum([1 for n in self.names_filter if name.startswith(n)]))
+                    fp.append(1 if name.startswith(self.pattern) else 0)
+                bck_filtered = np.asarray(data['bck'])[np.asarray(fn) == 1]
+                spattern = np.asarray(data['bck'])[np.asarray(fp) == 1]
 
                 # save data
-                self.dict_bck[gfile] = bck
+                self.dict_bck[gfile] = data['bck']
                 self.dict_label[gfile] = label
                 self.dict_bck_filtered[gfile] = bck_filtered
-                self.dict_searched_pattern[gfile] = searched_pattern
+                self.dict_searched_pattern[gfile] = spattern
             self.label_list.append(self.dict_label[gfile])
             if len(self.dict_searched_pattern[gfile]) != 0:
                 self.bck_filtered_list.append(self.dict_bck_filtered[gfile])
@@ -133,23 +118,10 @@ class SVMPatternClassification(object):
         print('Labeling %s' % gfile)
         # Extract bucket
         if gfile not in self.dict_bck.keys():
-            bck_types = ['aims_ss', 'aims_bottom', 'aims_other']
-            sbck = []
             graph = aims.read(gfile)
             side = gfile[gfile.rfind('/')+1:gfile.rfind('/')+2]
-            trans_tal = aims.GraphManip.talairach(graph)
-            vs = graph['voxel_size']
-            for vertex in graph.vertices():
-                for bck_type in bck_types:
-                    if bck_type in vertex:
-                        bucket = vertex[bck_type][0]
-                        for point in bucket.keys():
-                            fpt = [p * v for p, v in zip(point, vs)]
-                            trans_pt = list(trans_tal.transform(fpt))
-                            if (side == 'R'):
-                                trans_pt[0] *= -1
-                            trpt_2mm = [int(round(p/2)) for p in trans_pt]
-                            sbck.append(trpt_2mm)
+            data = extract_data(graph, flip=True if side == 'R' else False)
+            sbck = data['bck']
         else:
             sbck = self.dict_bck[gfile]
         sbck = np.array(sbck)
@@ -252,6 +224,15 @@ class SVMPatternClassification(object):
                 transrot_min, searched_pattern)
             X.append(distance_data_to_model(trans_searched_pattern, sbck))
         return X
+
+    def save(self, clf_file, scaler_file):
+        joblib.dump(self.clf, clf_file)
+        joblib.dump(self.scaler, scaler_file)
+
+    def load(self, clf_file, scaler_file):
+        self.clf = joblib.load(clf_file)
+        self.scaler = joblib(scaler_file)
+
 
 def apply_trans(transrot, data):
     data = np.asarray(data)

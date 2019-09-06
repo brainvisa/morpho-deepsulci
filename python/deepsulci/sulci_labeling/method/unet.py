@@ -33,7 +33,8 @@ class UnetSulciLabeling(object):
     '''
     def __init__(self, sulci_side_list,
                  batch_size=3, cuda=0, lr=0.001, momentum=0.9,
-                 num_filter=64, translation_file=None):
+                 num_filter=64, translation_file=None,
+                 dict_bck2=None, dict_names=None):
 
         # training parameters
         self.lr = lr
@@ -49,6 +50,10 @@ class UnetSulciLabeling(object):
         self.dict_sulci = {self.sulci_side_list[i]: i for i in range(len(self.sulci_side_list))}
         self.dict_num = {v: k for k, v in self.dict_sulci.items()}
         self.translation_file = translation_file
+
+        # lazy memory
+        self.dict_bck2 = {} if dict_bck2 is None else dict_bck2
+        self.dict_names = {} if dict_names is None else dict_names
 
         # network
         self.num_filter = num_filter
@@ -79,7 +84,8 @@ class UnetSulciLabeling(object):
         print('Extract validation dataloader...')
         valdataset = SulciDataset(
             gfile_list_test, self.dict_sulci,
-            train=False, translation_file=self.translation_file)
+            train=False, translation_file=self.translation_file,
+            dict_bck2=self.dict_bck2, dict_names=self.dict_names)
         valloader = torch.utils.data.DataLoader(
             valdataset, batch_size=self.batch_size,
             shuffle=False, num_workers=0)
@@ -87,7 +93,8 @@ class UnetSulciLabeling(object):
         print('Extract train dataloader...')
         traindataset = SulciDataset(
             gfile_list_train, self.dict_sulci,
-            train=True, translation_file=self.translation_file)
+            train=True, translation_file=self.translation_file,
+            dict_bck2=self.dict_bck2, dict_names=self.dict_names)
         trainloader = torch.utils.data.DataLoader(
             traindataset, batch_size=self.batch_size,
             shuffle=False, num_workers=0)
@@ -173,20 +180,19 @@ class UnetSulciLabeling(object):
                     best_model_wts = copy.deepcopy(model.state_dict())
 
             # early_stopping
-            if self.early_stopping:
-                es_stop(epoch_loss, model)
-                divide_lr(epoch_loss, model)
+            es_stop(epoch_loss, model)
+            divide_lr(epoch_loss, model)
 
-                if divide_lr.early_stop:
-                    print('Divide learning rate')
-                    lr = lr/2
-                    optimizer = optim.SGD(model.parameters(), lr=lr,
-                                          momentum=self.momentum)
-                    divide_lr = EarlyStopping(patience=patience)
+            if divide_lr.early_stop:
+                print('Divide learning rate')
+                lr = lr/2
+                optimizer = optim.SGD(model.parameters(), lr=lr,
+                                      momentum=self.momentum)
+                divide_lr = EarlyStopping(patience=patience)
 
-                if es_stop.early_stop:
-                    print("Early stopping")
-                    break
+            if es_stop.early_stop:
+                print("Early stopping")
+                break
 
             print('Epoch took %i s.' % (time.time() - start_time))
             print()
@@ -202,45 +208,32 @@ class UnetSulciLabeling(object):
         model.load_state_dict(best_model_wts)
         self.trained_model = model
 
-    def labeling(self, gfile, rypred=False, rytrue=False, ryscores=False,
-                 rvert=False, rbck=False, rnbck=False, rbck2=False):
+    def labeling(self, gfile, bck2=None, names=None):
         print('Labeling', gfile)
         self.trained_model = self.trained_model.to(self.device)
         self.trained_model.eval()
+        dict_bck2 = {} if bck2 is None else {gfile: bck2}
+        dict_names = {} if names is None else {gfile: names}
         dataset = SulciDataset(
             [gfile], self.dict_sulci, train=False,
             translation_file=self.translation_file,
-            rlabels=rytrue, rvert=rvert, rbck=rbck, rnbck=rnbck, rbck2=True)
+            dict_bck2=dict_bck2, dict_names=dict_names)
         data = dataset[0]
 
         with torch.no_grad():
-            inputs, labels, data_dict = data
+            inputs, labels = data
             inputs = inputs.unsqueeze(0)
             inputs = inputs.to(self.device)
             outputs = self.trained_model(inputs)
-            bck_T = np.transpose(data_dict['bck2'])
-
-        out = []
-        if rypred:
+            if bck2 is None:
+                bck2 = np.transpose(np.where(np.asarray(labels) != self.background))
+            bck_T = np.transpose(bck2)
             _, preds = torch.max(outputs.data, 1)
-            y_pred = preds[0][bck_T[0], bck_T[1], bck_T[2]].tolist()
-            out.append(y_pred)
-        if rytrue:
-            y_true = labels[bck_T[0], bck_T[1], bck_T[2]].tolist()
-            out.append(y_true)
-        if ryscores:
-            y_scores = outputs[0][:, bck_T[0], bck_T[1], bck_T[2]].tolist()
-            y_scores = np.transpose(y_scores)
-            out.append(y_scores)
-        if rvert:
-            out.append(data_dict['vert'])
-        if rbck:
-            out.append(data_dict['bck'])
-        if rnbck:
-            out.append(data_dict['nbck'])
-        if rbck2:
-            out.append(data_dict['bck2'])
-        return out
+            ypred = preds[0][bck_T[0], bck_T[1], bck_T[2]].tolist()
+            ytrue = labels[bck_T[0], bck_T[1], bck_T[2]].tolist()
+            yscores = outputs[0][:, bck_T[0], bck_T[1], bck_T[2]].tolist()
+            yscores = np.transpose(yscores)
+        return ytrue, ypred, yscores
 
     def find_hyperparameters(self, result_matrix, param_outfile, step=0):
         # STEP 0
@@ -384,7 +377,7 @@ class UnetSulciLabeling(object):
         print('=============')
         result_list = []
         for gf in gfile_list_test:
-            y_pred, y_true = self.labeling(gf, rypred=True, rytrue=True)
+            y_true, y_pred, _ = self.labeling(gf)
             result = pd.DataFrame()
             result['true_label'] = [self.dict_num[y] for y in y_true]
             result['pred_label'] = [self.dict_num[y] for y in y_pred]

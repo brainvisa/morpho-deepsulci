@@ -11,7 +11,8 @@ class PatternSVMLabeling(Process):
     def __init__(self):
         super(PatternSVMLabeling, self).__init__()
         self.add_trait('graphs', traits.List(traits.File(output=False)))
-        self.add_trait('train_graphs', traits.List(traits.File(output=False)))
+        self.add_trait('clf_file', traits.File(output=False))
+        self.add_trait('scaler_file', traits.File(output=False))
         self.add_trait('param_file', traits.File(output=False))
         self.add_trait('result_file', traits.File(output=True))
 
@@ -22,7 +23,7 @@ class PatternSVMLabeling(Process):
         method = SVMPatternClassification(
             pattern=param['pattern'], names_filter=param['names_filter'],
             C=param['C'], gamma=param['gamma'], trans=param['trans'])
-        method.learning(self.train_graphs)
+        method.load(self.clf_file, self.scaler_file)
         y_pred = method.labeling(self.graphs)
         result = pd.DataFrame(index=[str(g) for g in self.graphs])
         result['y_pred'] = y_pred

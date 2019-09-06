@@ -12,8 +12,7 @@ import sigraph
 class SulciDataset(Dataset):
     def __init__(self, gfile_list, dict_sulci,
                  train=True, translation_file=None,
-                 rlabels=True, rvert=False,
-                 rbck=False, rnbck=False, rbck2=False):
+                 dict_bck2={}, dict_names={}):
         self.gfile_list = gfile_list
         self.dict_sulci = dict_sulci
         if 'background' not in self.dict_sulci.keys():
@@ -21,16 +20,8 @@ class SulciDataset(Dataset):
         self.train = train
         self.rot_angle = math.pi/16
         self.translation_file = translation_file
-        self.rlabels = rlabels
-        self.rvert = rvert
-        self.rbck = rbck
-        self.rnbck = rnbck
-        self.rbck2 = rbck2
-        self.dict_nbck = {}
-        self.dict_bck = {}
-        self.dict_bck2 = {}
-        self.dict_names = {}
-        self.dict_vert = {}
+        self.dict_bck2 = dict_bck2
+        self.dict_names = dict_names
 
     def transform(self, bck):
         # rotation
@@ -46,12 +37,9 @@ class SulciDataset(Dataset):
 
     def __getitem__(self, index):
         gfile = self.gfile_list[index]
-        if gfile in self.dict_bck.keys():
-            bck = self.dict_bck[gfile]
-            nbck = self.dict_nbck[gfile]
-            bck2 = self.dict_bck2[gfile]
-            vert = self.dict_vert[gfile]
-            names = self.dict_names[gfile]
+        if gfile in self.dict_bck2.keys():
+            bck2 = np.asarray(self.dict_bck2[gfile])
+            names = np.asarray(self.dict_names[gfile])
         else:
             graph = aims.read(gfile)
             if self.translation_file is not None:
@@ -60,36 +48,14 @@ class SulciDataset(Dataset):
                 flt.translate(graph)
 
             # extract bucket/names
-            trans_tal = aims.GraphManip.talairach(graph)
-            vs = graph['voxel_size']
-            bck_types = ['aims_ss', 'aims_bottom', 'aims_other']
-            bck, nbck, bck2, vert, names = [], [], [], [], []
-            for vertex in graph.vertices():
-                if 'name' in vertex:
-                    name = vertex['name']
-                else:
-                    name = 'unknown'
-                for bck_type in bck_types:
-                    if bck_type in vertex:
-                        bucket = vertex[bck_type][0]
-                        for point in bucket.keys():
-                            nbck.append(point)
-                            p0 = [p * v for p, v in zip(point, vs)]
-                            p1 = trans_tal.transform(p0)
-                            bck.append(list(p1))
-                            p2 = [int(round(p1[i]/2)) for i in range(3)]
-                            bck2.append(p2)
-                            names.append(name)
-                            vert.append(vertex['index'])
-            tr = np.min(bck2, axis=0)
-            bck2 = bck2 - tr
-
-            # save data
-            self.dict_bck[gfile] = bck
-            self.dict_nbck[gfile] = nbck
+            data = extract_data(graph)
+            bck2 = np.asarray(data['bck2'])
+            names = np.asarray(data['names'])
             self.dict_bck2[gfile] = bck2
-            self.dict_vert[gfile] = vert
             self.dict_names[gfile] = names
+
+        tr = np.min(bck2, axis=0)
+        bck2 = bck2 - tr
 
         # data augmentation
         if self.train:
@@ -103,29 +69,13 @@ class SulciDataset(Dataset):
             1, img_size[0], img_size[1], img_size[2], dtype=torch.float)
         input[0][bck_T[0], bck_T[1], bck_T[2]] = 1
 
-        if self.rlabels:
-            labels = torch.zeros(
-                img_size[0], img_size[1], img_size[2], dtype=torch.long)
-            labels += self.dict_sulci['background']
-            labels[bck_T[0], bck_T[1], bck_T[2]] = torch.tensor(
-                [self.dict_sulci[n] for n in names], dtype=torch.long)
-        else:
-            labels = []
+        labels = torch.zeros(
+            img_size[0], img_size[1], img_size[2], dtype=torch.long)
+        labels += self.dict_sulci['background']
+        labels[bck_T[0], bck_T[1], bck_T[2]] = torch.tensor(
+            [self.dict_sulci[n] for n in names], dtype=torch.long)
 
-        dict_data = {}
-        if self.rvert:
-            dict_data['vert'] = vert
-        if self.rbck:
-            dict_data['bck'] = bck
-        if self.rnbck:
-            dict_data['nbck'] = nbck
-        if self.rbck2:
-            dict_data['bck2'] = bck2
-
-        if len(dict_data) != 0:
-            return input, labels, dict_data
-        else:
-            return input, labels
+        return input, labels
 
     def __len__(self):
         return len(self.gfile_list)
@@ -169,31 +119,21 @@ class PatternDataset(Dataset):
             label = self.dict_label[gfile]
         else:
             side = gfile[gfile.rfind('/')+1:gfile.rfind('/')+2]
+            flip = True if side == 'R' else False
             graph = aims.read(gfile)
-            trans_tal = aims.GraphManip.talairach(graph)
-            vs = graph['voxel_size']
-            bck_types = ['aims_ss', 'aims_bottom', 'aims_other']
+            data = extract_data(graph, flip=flip)
+            bck = data['bck2']
             if self.labels is not None:
                 label = self.labels[index]
+            elif self.pattern is None:
+                label = np.NaN
             else:
-                label = np.NaN if self.pattern is None else 0
-            bck = []
-            for vertex in graph.vertices():
-                if self.labels is None:
-                    if self.pattern is not None:
-                        if 'name' in vertex:
-                            if vertex['name'].startswith(self.pattern):
-                                label = 1
-                for bck_type in bck_types:
-                    if bck_type in vertex:
-                        bucket = vertex[bck_type][0]
-                        for point in bucket.keys():
-                            fpt = [p * v for p, v in zip(point, vs)]
-                            trans_pt = trans_tal.transform(fpt)
-                            if (side == 'R'):
-                                trans_pt[0] *= -1
-                            trpt_2mm = [int(round(p/2)) for p in list(trans_pt)]
-                            bck.append(trpt_2mm)
+                label = 0
+                for n in data['names']:
+                    if n.startswith(self.pattern):
+                        label = 1
+                        break
+
             self.dict_bck[gfile] = bck
             self.dict_label[gfile] = label
 
@@ -215,6 +155,33 @@ class PatternDataset(Dataset):
 
     def __len__(self):
         return len(self.gfile_list)
+
+
+def extract_data(graph, flip=False):
+    trans_tal = aims.GraphManip.talairach(graph)
+    vs = graph['voxel_size']
+    bck_types = ['aims_ss', 'aims_bottom', 'aims_other']
+    data = {'bck': [], 'nbck': [], 'bck2': [], 'vert': [], 'names': []}
+    for vertex in graph.vertices():
+        if 'name' in vertex:
+            name = vertex['name']
+        else:
+            name = 'unknown'
+        for bck_type in bck_types:
+            if bck_type in vertex:
+                bucket = vertex[bck_type][0]
+                for point in bucket.keys():
+                    if flip:
+                        point[0] *= -1
+                    data['nbck'].append(point)
+                    p0 = [p * v for p, v in zip(point, vs)]
+                    p1 = trans_tal.transform(p0)
+                    data['bck'].append(list(p1))
+                    p2 = [int(round(p1[i]/2)) for i in range(3)]
+                    data['bck2'].append(p2)
+                    data['names'].append(name)
+                    data['vert'].append(vertex['index'])
+    return data
 
 
 def apply_bounding_box(points, bb):

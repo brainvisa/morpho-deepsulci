@@ -1,4 +1,5 @@
 from __future__ import print_function
+from ...deeptools.dataset import extract_data
 from ..method.resnet import ResnetPatternClassification
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from capsul.api import Process
@@ -18,14 +19,14 @@ class PatternDeepTraining(Process):
         self.add_trait('pattern', traits.Str(output=False))
         self.add_trait('names_filter', traits.ListStr(output=False))
         self.add_trait('batch_size', traits.Int(
-            output=False, optional=True, default=10))
+            10, output=False, optional=True))
         self.add_trait('cuda', traits.Int(output=False))
         self.add_trait('step_1', traits.Bool(
-            output=False, optional=True, default=True))
+            True, output=False, optional=True))
         self.add_trait('step_2', traits.Bool(
-            output=False, optional=True, default=True))
+            True, output=False, optional=True))
         self.add_trait('step_3', traits.Bool(
-            output=False, optional=True, default=True))
+            True, output=False, optional=True))
 
         self.add_trait('model_file', traits.File(output=True))
         self.add_trait('param_file', traits.File(output=True))
@@ -43,40 +44,21 @@ class PatternDeepTraining(Process):
             print('--------------------------------')
             print()
 
-            bck_types = ['aims_ss', 'aims_bottom', 'aims_other']
             bb = np.array([[100, -100], [100, -100], [100, -100]])
-            dict_label = {}
-            dict_bck = {}
-            label = np.NaN if self.pattern is None else 0
-            bck = []
+            dict_label, dict_bck = {}, {}
             for gfile in self.graphs:
                 graph = aims.read(gfile)
                 side = gfile[gfile.rfind('/')+1:gfile.rfind('/')+2]
-                trans_tal = aims.GraphManip.talairach(graph)
-                vs = graph['voxel_size']
+                data = extract_data(graph, flip=True if side == 'R' else False)
                 label = 0
-                bck = []
-                bck_filtered = []
-                for vertex in graph.vertices():
-                    if 'name' in vertex:
-                        name = vertex['name']
-                        if name.startswith(self.pattern):
-                            label = 1
-                        filter = sum([1 if name.startswith(n) else 0 for n in self.names_filter])
-                        for bck_type in bck_types:
-                            if bck_type in vertex:
-                                bucket = vertex[bck_type][0]
-                                for point in bucket.keys():
-                                    fpt = [p * v for p, v in zip(point, vs)]
-                                    trans_pt = trans_tal.transform(fpt)
-                                    if (side == 'R'):
-                                        trans_pt[0] *= -1
-                                    trpt_2mm = [int(round(p/2)) for p in list(trans_pt)]
-                                    bck.append(trpt_2mm)
-                                    if filter:
-                                        bck_filtered.append(trpt_2mm)
+                fn = []
+                for name in data['names']:
+                    if name.startswith(self.pattern):
+                        label = 1
+                    fn.append(sum([1 for n in self.names_filter if name.startswith(n)]))
+                bck_filtered = np.asarray(data['bck2'])[np.asarray(fn) == 1]
                 dict_label[gfile] = label
-                dict_bck[gfile] = bck
+                dict_bck[gfile] = data['bck2']
                 if len(bck_filtered) != 0:
                     bb[:, 1] = np.max([np.max(bck_filtered, axis=0), bb[:, 1]],
                                       axis=0)

@@ -14,7 +14,7 @@ class PatternSnipeLabeling(Process):
         self.add_trait('traindata_file', traits.File(output=False))
         self.add_trait('param_file', traits.File(output=False))
         self.add_trait('num_cpu', traits.Int(
-            output=False, optional=True, default=1))
+            1, output=False, optional=True))
         self.add_trait('result_file', traits.File(output=True))
 
     def _run_process(self):

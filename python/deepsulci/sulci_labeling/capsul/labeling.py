@@ -1,4 +1,5 @@
 from __future__ import print_function
+from ...deeptools.dataset import extract_data
 from ..method.cutting import cutting
 from ..method.unet import UnetSulciLabeling
 from soma.aimsalgo.sulci import graph_pointcloud
@@ -40,37 +41,38 @@ class SulciDeepLabeling(Process):
         dict_num = {v: k for k, v in dict_sulci.items()}
 
         # voxel labeling
-        y_pred, y_scores, vert, bck, bck2 = method.labeling(
-            self.graph, rypred=True, ryscores=True, rvert=True,
-            rbck=True, rbck2=True)
+        graph = aims.read(self.graph)
+        data = extract_data(graph)
+        data = {k: np.asarray(v) for k, v in data.iteritems()}
+        _, y_pred, y_scores = method.labeling(
+            self.graph, data['bck2'], ['unknown']*len(data['bck2']))
 
         # cutting
-        # TODO. verifier que ca marche toujours avec les doublons !!
         print('threshold', param['cutting_threshold'])
         y_pred_cut = cutting(
-            y_scores, vert, bck2, threshold=param['cutting_threshold'])
+            y_scores, data['vert'], data['bck2'],
+            threshold=param['cutting_threshold'])
 
         # conversion to Talairach
-        for i in set(vert):
-            c = Counter(y_pred_cut[vert == i])
+        for i in set(data['vert']):
+            c = Counter(y_pred_cut[data['vert'] == i])
             if len(c) > 1:
                 if c.most_common()[1][1] < 20:
                     predicted_label = c.most_common()[0][0]
-                    y_pred_cut[vert == i] = predicted_label
+                    y_pred_cut[data['vert'] == i] = predicted_label
 
         # graph conversion
         graph = aims.read(self.graph)
-        data = pd.DataFrame()
-        bck = np.asarray(bck)
-        data['point_x'] = bck[:, 0]
-        data['point_y'] = bck[:, 1]
-        data['point_z'] = bck[:, 2]
-        data['before_cutting'] = [dict_num[y] for y in y_pred]
-        data['after_cutting'] = [dict_num[y] for y in y_pred_cut]
-        # TODO. remove saving
+        result = pd.DataFrame()
+        bck = data['bck']
+        result['point_x'] = bck[:, 0]
+        result['point_y'] = bck[:, 1]
+        result['point_z'] = bck[:, 2]
+        result['before_cutting'] = [dict_num[y] for y in y_pred]
+        result['after_cutting'] = [dict_num[y] for y in y_pred_cut]
         roots = aims.read(self.roots)
         graph, summary = graph_pointcloud.build_split_graph(
-            graph, data, roots)
+            graph, result, roots)
 
         print('summary:', summary)
         if self.rebuild_attributes and summary['cuts'] != 0:
@@ -85,7 +87,7 @@ class SulciDeepLabeling(Process):
                     threads = 1
                 fat.setMaxThreads(threads)
             smoothType = aimsalgo.Mesher.LOWPASS
-            fat.mesher().setSmoothing(smoothType, 50, 0.4 )
+            fat.mesher().setSmoothing(smoothType, 50, 0.4)
             fat.mesher().setDecimation(100., 2., 3., 180.0)
             fat.doAll()
 
