@@ -59,14 +59,30 @@
             "labeled_graph": [
                 ["output:{recognition_analysis}/<side><subject>_<sulci_recognition_session>_auto",
                     "Graph and data",
-                 {"side": "L", "labelled": "No"}],
+                 {"side": "L", "labelled": "Yes"}],
                 ["output:{recognition_analysis}/<side><subject>_<sulci_recognition_session>_auto",
                     "Graph and data",
-                 {"side": "R", "labelled": "No"}]
+                 {"side": "R", "labelled": "Yes"}]
             ]
         },
         "SulciDeepTraining" : {
-            "translation_file": 
+            "graphs": [
+                ["output:{recognition_analysis}/<side><subject>_<sulci_recognition_session>_manual",
+                    "Graph and data",
+                 {"side": "L", "labelled": "Yes", "manually_labelled": "Yes"}],
+                ["output:{recognition_analysis}/<side><subject>_<sulci_recognition_session>_manual",
+                    "Graph and data",
+                 {"side": "R", "labelled": "Yes", "manually_labelled": "Yes"}]
+            ],
+            "graphs_notcut": [
+                ["input:{analysis}/folds/<graph_version>/<side><subject>",
+                "Graph and data",
+                {"side": "L", "labelled": "No"}],
+                ["input:{analysis}/folds/<graph_version>/<side><subject>",
+                "Graph and data",
+                {"side": "R", "labelled": "No"}]
+            ],
+            "translation_file":
                 [[
                     "shared:nomenclature/translation/sulci_model_2018",
                     [
