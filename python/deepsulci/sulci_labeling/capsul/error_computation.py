@@ -1,3 +1,7 @@
+'''
+Error Computation Module
+'''
+
 from __future__ import print_function
 from soma import aims, aimsalgo
 from capsul.api import Process
@@ -7,16 +11,34 @@ import numpy as np
 
 
 class ErrorComputation(Process):
+    '''
+    Process to compute the Similarity Index Error rate (ESI) and the local
+    error rate (Elocal) described in (Perrot et al. 2011).
+    In order to evaluate the impact of the pipeline variability, the error
+    rates can be computed on several graphs (extracted from the same MRI scan)
+    automatically labeled. These graphs are compared to the manually labeled
+    graph (true_graph).
+    
+    '''
+
     def __init__(self):
         super(ErrorComputation, self).__init__()
-        self.add_trait('t1mri', traits.File(output=False))
-        self.add_trait('true_graph', traits.File(output=False))
-        self.add_trait('labeled_graphs',
-                       traits.List(traits.File(output=False)))
-        self.add_trait('sulci_side_list',
-                       traits.List(traits.Str(output=False)))
+        self.add_trait('t1mri', traits.File(
+            output=False, desc='MRI scan'))
+        self.add_trait('true_graph', traits.File(
+            output=False, desc='corresponding graph manually labeled'))
+        self.add_trait('labeled_graphs', traits.List(
+            traits.File(output=False),
+            desc='corresponding set of graphs automatically labeled'))
+        self.add_trait('sulci_side_list', traits.List(
+            traits.Str(output=False),
+            desc='list of sulci (e.g. S.C._right) considered to compute the'
+                 ' error rates. It is not supposed to contain the labels'
+                 ' "unknown", "ventricle_left" and "ventricle_right".'))
 
-        self.add_trait('error_file', traits.File(output=True))
+        self.add_trait('error_file', traits.File(
+            output=True,
+            desc='file (.csv) storing the error rates for each labeled graph'))
 
     def _run_process(self):
         # Compute voronoi

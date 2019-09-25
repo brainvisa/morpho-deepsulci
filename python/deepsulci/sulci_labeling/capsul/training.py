@@ -1,3 +1,7 @@
+'''
+UNET Training Module
+'''
+
 from __future__ import print_function
 from ...deeptools.dataset import extract_data
 from ..method.unet import UnetSulciLabeling
@@ -17,28 +21,71 @@ import os
 
 class SulciDeepTraining(Process):
     '''
-    Graphs should be of the same side!
+    Process to train a UNET neural network to automatically label the sulci.
+
+    This process consists of four steps. Each step depends on the previous
+    step (except step 4 that is independent of step 3).
+    However, they can be started independently if the previous steps have
+    already been completed.
+
+    The first step is to extract from the graphs the data useful for training
+    the neural network (buckets and corresponding sulcus names).
+    These data are stored in Jason files (buckets and names in
+    traindata_file and sulci list in param_file).
+
+    The second step allows to set the hyperparameters (learning rate and
+    momentum) by 3-fold cross-validation.
+    These hyperparameters are saved in the Jason file param_file.
+
+    The third step is to train the UNET neural network on the entire database.
+    The neural network parameters are saved in the file model_param.mdsm
+
+    The fourth step allows to set the cutting hyperparameter (threshold on the
+    Calinski-Harabaz index) by 3-fold cross-validation.
+    This hyperparameter is saved in the Jason file param_file.
+
+    **Warning:** Graphs should be of the same side!
+
     '''
+
     def __init__(self):
         super(SulciDeepTraining, self).__init__()
-        self.add_trait('graphs', traits.List(traits.File(output=False)))
+        self.add_trait('graphs', traits.List(traits.File(output=False),
+                                             desc='training base graphs'))
         self.add_trait('graphs_notcut', traits.List(
-            traits.File(output=False)))
-        self.add_trait('cuda', traits.Int(output=False))
+            traits.File(output=False),
+            desc='training base graphs before manual cutting of the'
+                 ' elementary folds'))
+        self.add_trait('cuda', traits.Int(
+            output=False, desc='device on which to run the training'
+                               '(-1 for cpu, i>=0 for the i-th gpu)'))
         self.add_trait('translation_file', traits.File(
-            output=False, optional=True))
+            output=False, optional=True,
+            desc='file (.trl) containing the translation of the sulci to'
+                 'applied on the training base graphs (optional)'))
         self.add_trait('step_1', traits.Bool(
-            True, output=False, optional=True))
+            True, output=False, optional=True,
+            desc='perform the data extraction step from the graphs'))
         self.add_trait('step_2', traits.Bool(
-            True, output=False, optional=True))
+            True, output=False, optional=True,
+            desc='perform the hyperparameter tuning step'
+                 ' (learning rate and momentum)'))
         self.add_trait('step_3', traits.Bool(
-            True, output=False, optional=True))
+            True, output=False, optional=True,
+            desc='perform the model training step'))
         self.add_trait('step_4', traits.Bool(
-            True, output=False, optional=True))
-
-        self.add_trait('model_file', traits.File(output=True))
-        self.add_trait('param_file', traits.File(output=True))
-        self.add_trait('traindata_file', traits.File(output=True))
+            True, output=False, optional=True,
+            desc='perform the cutting hyperparameter tuning step'))
+    
+        self.add_trait('model_file', traits.File(
+            output=True,
+            desc='file (.mdsm) storing neural network parameters'))
+        self.add_trait('param_file', traits.File(
+            output=True, desc='file (.json) storing the hyperparameters'
+                              ' (learning rate, momentum, cutting threshold)'))
+        self.add_trait('traindata_file', traits.File(
+            output=True, desc='file (.json) storing the data extracted'
+                              ' from the training base graphs'))
 
     def _run_process(self):
         agraphs = np.asarray(self.graphs)

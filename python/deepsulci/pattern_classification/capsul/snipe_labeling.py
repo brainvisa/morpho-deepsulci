@@ -19,8 +19,8 @@ class PatternSnipeLabeling(Process):
 
     def __init__(self):
         super(PatternSnipeLabeling, self).__init__()
-        self.add_trait('graphs', traits.List(traits.File(
-            output=False, desc='graphs to classify')))
+        self.add_trait('graphs', traits.List(
+            traits.File(output=False), desc='graphs to classify'))
         self.add_trait('traindata_file', traits.File(
             output=False, desc='file (.json) storing the data extracted'
                                ' from the training base graphs'))

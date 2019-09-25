@@ -37,8 +37,8 @@ class PatternSnipeTraining(Process):
     '''
     def __init__(self):
         super(PatternSnipeTraining, self).__init__()
-        self.add_trait('graphs', traits.List(traits.File(
-            output=False, desc='training base graphs')))
+        self.add_trait('graphs', traits.List(
+            traits.File(output=False), desc='training base graphs'))
         self.add_trait('pattern', traits.Str(
             output=False, desc='vertex name representing the'
                                ' searched pattern'))

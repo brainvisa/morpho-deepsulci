@@ -1,3 +1,7 @@
+'''
+UNET Labeling Module
+'''
+
 from __future__ import print_function
 from ...deeptools.dataset import extract_data
 from ..method.cutting import cutting
@@ -15,17 +19,30 @@ import json
 
 
 class SulciDeepLabeling(Process):
+    '''
+    Process to label a new graph using a 3D U-Net convolutional neural network.
+    '''
+
     def __init__(self):
         super(SulciDeepLabeling, self).__init__()
-        self.add_trait('graph', traits.File(output=False))
-        self.add_trait('roots', traits.File(output=False))
-        self.add_trait('param_file', traits.File(output=False))
-        self.add_trait('model_file', traits.File(output=False))
+        self.add_trait('graph', traits.File(
+            output=False, desc='input graph to segment'))
+        self.add_trait('roots', traits.File(
+            output=False, desc='root file corresponding to the input graph'))
+        self.add_trait('model_file', traits.File(
+            output=False, desc='file (.mdsm) storing neural network'
+                               ' parameters'))
+        self.add_trait('param_file', traits.File(
+            output=False, desc='file (.json) storing the hyperparameters'
+                               ' (cutting threshold)'))
         self.add_trait('rebuild_attributes', traits.Bool(True, output=False))
-        self.add_trait('skeleton', traits.File(output=False))
+        self.add_trait('skeleton', traits.File(
+            output=False,
+            desc='skeleton file corresponding to the input graph'))
         self.add_trait('allow_multithreading', traits.Bool(True, output=False))
 
-        self.add_trait('labeled_graph', traits.File(output=True))
+        self.add_trait('labeled_graph', traits.File(
+            output=True, desc='output labeled graph'))
 
     def _run_process(self):
         start_time = time.time()

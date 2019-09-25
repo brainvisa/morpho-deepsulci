@@ -19,8 +19,8 @@ class PatternSVMLabeling(Process):
 
     def __init__(self):
         super(PatternSVMLabeling, self).__init__()
-        self.add_trait('graphs', traits.List(traits.File(
-            output=False, desc='graphs to classify')))
+        self.add_trait('graphs', traits.List(
+            traits.File(output=False), desc='graphs to classify'))
         self.add_trait('clf_file', traits.File(
             output=False, desc='file (.sav) storing the trained SVM'
                                ' classifier'))
