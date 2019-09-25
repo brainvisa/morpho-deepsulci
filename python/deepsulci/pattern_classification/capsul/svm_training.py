@@ -1,3 +1,7 @@
+'''
+SVM Training Module
+'''
+
 from __future__ import print_function
 from ...deeptools.dataset import extract_data
 from ..method.svm import SVMPatternClassification
@@ -10,22 +14,65 @@ import json
 
 
 class PatternSVMTraining(Process):
+    '''
+    Process to train a Support Vector Machine (SVM) classifier to recognize a
+    searched fold pattern.
+
+    This process consists of three steps. Each step depends on the previous
+    step. However, they can be started independently if the previous steps have
+    already been completed.
+
+    The first step is to extract from the graphs the data useful for training
+    the SVM-based model (buckets and labels).
+    These data are stored in Jason files (traindata_file).
+
+    The second step allows to set the hyperparameters (C, gamma and
+    translations applied to the patches before their registration with the
+    Iterative Closest Point (ICP) algorithm) by 3-fold cross-validation.
+    These hyperparameters are saved in the Jason file param_file.
+
+    The third step is to train the SVM on the data.
+    The model is saved in clf_file and the scaler allowing to standardize the
+    features in scaler_file.
+
+    **Warning:** The searched pattern must have been manually labeled on the
+    graphs of the training database containing it.
+
+    '''
+
     def __init__(self):
         super(PatternSVMTraining, self).__init__()
-        self.add_trait('graphs', traits.List(traits.File(output=False)))
-        self.add_trait('pattern', traits.Str(output=False))
-        self.add_trait('names_filter', traits.ListStr(output=False))
+        self.add_trait('graphs', traits.List(traits.File(
+            output=False, desc='training base graphs')))
+        self.add_trait('pattern', traits.Str(
+            output=False, desc='vertex name representing the'
+                               ' searched pattern'))
+        self.add_trait('names_filter', traits.ListStr(
+            output=False, desc='list of vertex names used for the registration'
+                               ' of the patches'))
         self.add_trait('step_1', traits.Bool(
-            True, output=False, optional=True))
+            True, output=False, optional=True,
+            desc='perform the data extraction step from the graphs'))
         self.add_trait('step_2', traits.Bool(
-            True, output=False, optional=True))
+            True, output=False, optional=True,
+            desc='perform the hyperparameter tuning step'
+                 ' (C, gamma, initial translations)'))
         self.add_trait('step_3', traits.Bool(
-            True, output=False, optional=True))
+            True, output=False, optional=True,
+            desc='perform the model training step'))
 
-        self.add_trait('traindata_file', traits.File(output=True))
-        self.add_trait('param_file', traits.File(output=True))
-        self.add_trait('clf_file', traits.File(output=True))
-        self.add_trait('scaler_file', traits.File(output=True))
+        self.add_trait('traindata_file', traits.File(
+            output=True, desc='file (.json) storing the data extracted'
+                              ' from the training base graphs'))
+        self.add_trait('param_file', traits.File(
+            output=True, desc='file (.json) storing the hyperparameters'
+                              ' (C, gamma, initial tranlations)'))
+        self.add_trait('clf_file', traits.File(
+            output=True,
+            desc='file (.sav) storing the trained SVM classifier'))
+        self.add_trait('scaler_file', traits.File(
+            output=True,
+            desc='file (.sav) storing the scaler'))
 
     def _run_process(self):
 

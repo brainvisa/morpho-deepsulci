@@ -1,3 +1,7 @@
+'''
+ResNet Training Module
+'''
+
 from __future__ import print_function
 from ...deeptools.dataset import extract_data
 from ..method.resnet import ResnetPatternClassification
@@ -13,24 +17,65 @@ import os
 
 
 class PatternDeepTraining(Process):
+    '''
+    Process to train a 3D ResNet-18 to recognize a searched fold pattern.
+
+    This process consists of three steps. Each step depends on the previous
+    step. However, they can be started independently if the previous steps have
+    already been completed.
+
+    The first step is to extract from the graphs the data useful for training
+    the neural networks (buckets, labels and bounding box of the names_filter).
+    These data are stored in Jason files (buckets and labels in
+    traindata_file and bounding box in param_file).
+
+    The second step allows to set the hyperparameters (learning rate and
+    momentum) by 3-fold cross-validation.These hyperparameters are saved in the
+    Jason file param_file.
+
+    The third step is to train the 18-layer 3D ResNet neural network on the
+    data. The neural network parameters are saved in the file model_param.mdsm
+
+    **Warning:** The searched pattern must have been manually labeled on the
+    graphs of the training database containing it.
+
+    '''
     def __init__(self):
         super(PatternDeepTraining, self).__init__()
-        self.add_trait('graphs', traits.List(traits.File(output=False)))
-        self.add_trait('pattern', traits.Str(output=False))
-        self.add_trait('names_filter', traits.ListStr(output=False))
+        self.add_trait('graphs', traits.List(traits.File(output=False),
+                                             desc='training base graphs'))
+        self.add_trait('pattern', traits.Str(
+            output=False, desc='vertex name representing the'
+                               ' searched pattern'))
+        self.add_trait('names_filter', traits.ListStr(
+            output=False, desc='list of vertex names defining the bounding box'
+                               ' used as input for the neural network'))
         self.add_trait('batch_size', traits.Int(
-            10, output=False, optional=True))
-        self.add_trait('cuda', traits.Int(output=False))
+            10, output=False, optional=True,
+            desc='batch size used to train the neural network'))
+        self.add_trait('cuda', traits.Int(
+            output=False, desc='device on which to run the training'
+                               '(-1 for cpu, i>=0 for the i-th gpu)'))
         self.add_trait('step_1', traits.Bool(
-            True, output=False, optional=True))
+            True, output=False, optional=True,
+            desc='perform the data extraction step from the graphs'))
         self.add_trait('step_2', traits.Bool(
-            True, output=False, optional=True))
+            True, output=False, optional=True,
+            desc='perform the hyperparameter tuning step'
+                 ' (learning rate and momentum)'))
         self.add_trait('step_3', traits.Bool(
-            True, output=False, optional=True))
+            True, output=False, optional=True,
+            desc='perform the model training step'))
 
-        self.add_trait('model_file', traits.File(output=True))
-        self.add_trait('param_file', traits.File(output=True))
-        self.add_trait('traindata_file', traits.File(output=True))
+        self.add_trait('model_file', traits.File(
+            output=True,
+            desc='file (.mdsm) storing neural network parameters'))
+        self.add_trait('param_file', traits.File(
+            output=True, desc='file (.json) storing the hyperparameters'
+                              ' (bounding_box, learning rate and momentum)'))
+        self.add_trait('traindata_file', traits.File(
+            output=True, desc='file (.json) storing the data extracted'
+                              ' from the training base graphs'))
 
     def _run_process(self):
         agraphs = np.array(self.graphs)
@@ -103,6 +148,7 @@ class PatternDeepTraining(Process):
             print()
             y = np.asarray([dict_label[g] for g in self.graphs])
             n_cvinner = 3
+            print('RANDOM STATE 0')
             skf = StratifiedKFold(n_splits=n_cvinner, shuffle=True,
                                   random_state=0)
             for step in range(3):

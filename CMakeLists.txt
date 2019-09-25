@@ -61,9 +61,9 @@ add_dependencies( install-morpho-deepsulci install-deepsulci-models )
 # brainvisa_add_test(morphologist-test-capsul "${PYTHON_EXECUTABLE_NAME}" -m morphologist.tests.test_morphologist_capsul)
 # set_tests_properties(morphologist-test-capsul PROPERTIES DEPENDS morphologist-tests)
 
-# find_package( Sphinx )
-# BRAINVISA_GENERATE_SPHINX_DOC( "sphinx"
-#   "share/doc/morpho-deepsulci-${BRAINVISA_PACKAGE_VERSION_MAJOR}.${BRAINVISA_PACKAGE_VERSION_MINOR}/dev_doc" )
+find_package( Sphinx )
+BRAINVISA_GENERATE_SPHINX_DOC( "sphinx"
+  "share/doc/morpho-deepsulci-${BRAINVISA_PACKAGE_VERSION_MAJOR}.${BRAINVISA_PACKAGE_VERSION_MINOR}/dev_doc" )
 
 # BRAINVISA_CREATE_CMAKE_CONFIG_FILES()
 

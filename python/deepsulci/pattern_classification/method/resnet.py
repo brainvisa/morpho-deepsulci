@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from __future__ import print_function
 from ...deeptools.dataset import PatternDataset
 from ...deeptools.early_stopping import EarlyStopping

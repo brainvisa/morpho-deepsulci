@@ -21,15 +21,14 @@ class OptimizedPatchMatch:
         self.ann_col_dim = ['ann_point_x', 'ann_point_y', 'ann_point_z']
         self.border = border
 
-    def run(self, distmap, bck, distmap_list, bck_list,
+    def run(self, distmap, distmap_list, bck_list,
             bckmap_list=[], dnum={}, proba_list=None):
 
         list_df_ann = []
         for k in range(self.k):
             start_time = time.clock()
-            df_ann = self.initialization(distmap, bck, dnum,
-                                         distmap_list, bck_list, bckmap_list,
-                                         proba_list)
+            df_ann = self.initialization(distmap, dnum, distmap_list, bck_list,
+                                         bckmap_list, proba_list)
             for j in range(self.j):
                 df_ann = self.iteration(j, df_ann, distmap, distmap_list,
                                         bckmap_list, dnum)
@@ -38,9 +37,9 @@ class OptimizedPatchMatch:
                   (k+1, self.k, time.clock()-start_time))
         return list_df_ann
 
-    def initialization(self, distmap, bck, dnum,
+    def initialization(self, distmap, dnum,
                        distmap_list, bck_list, bckmap_list, proba_list):
-
+        bck = np.transpose(np.where(np.asarray(distmap) == 0)[:3])
         df_ann = pd.DataFrame(index=range(len(bck)),
                               columns=['ann_point_x', 'ann_point_y',
                                        'ann_point_z', 'ann_name', 'ann_num',

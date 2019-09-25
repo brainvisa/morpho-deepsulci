@@ -152,10 +152,9 @@ class SnipePatternClassification(object):
             opm = OptimizedPatchMatch(
                 patch_size=[ps, ps, ps], segmentation=False, k=self.n_opal)
             list_dfann = opm.run(
-                distmap=sdistmap, bck=sbck,
-                distmap_list=self.distmap_list, bck_list=self.bck_list,
-                proba_list=self.proba_list)
-            grading_list.append(grading(sbck, list_dfann, self.label_list))
+                distmap=sdistmap, distmap_list=self.distmap_list,
+                bck_list=self.bck_list, proba_list=self.proba_list)
+            grading_list.append(grading(list_dfann, self.label_list))
 
         grade = np.nanmean(np.mean(grading_list, axis=0))
         ypred = 1 if grade > 0 else 0
@@ -231,14 +230,13 @@ def apply_bounding_box(points, bb):
     return inbox, np.asarray(range(len(points)))[inidx]
 
 
-def grading(points, list_dfann, grade_list):
-    idxs = range(len(points))
-    grad_list = np.zeros(len(points))
+def grading(list_dfann, grade_list):
+    idxs = range(len(list_dfann[0]))
+    grad_list = np.zeros(len(list_dfann[0]))
 
-    for pt, idx in zip(points, idxs):
+    for idx in idxs:
         distances, names = [], []
-        for k in range(len(list_dfann)):
-            df_ann = list_dfann[k]
+        for df_ann in list_dfann:
             distances.append(df_ann.loc[idx, 'dist'])
             ann_num = int(round(df_ann.loc[idx, 'ann_num']))
             names.append(grade_list[ann_num])
@@ -294,10 +292,9 @@ def subject_labeling(gfile, dict_bck, translation, mask, vol_size, n_opal,
         opm = OptimizedPatchMatch(
             patch_size=[ps, ps, ps], segmentation=False, k=n_opal)
         list_dfann = opm.run(
-            distmap=sdistmap, bck=sbck,
-            distmap_list=distmap_list, bck_list=bck_list,
-            proba_list=proba_list)
-        grading_list.append(grading(sbck, list_dfann, label_list))
+            distmap=sdistmap, distmap_list=distmap_list,
+            bck_list=bck_list, proba_list=proba_list)
+        grading_list.append(grading(list_dfann, label_list))
 
     grade = np.nanmean(np.mean(grading_list, axis=0))
     ypred = 1 if grade > 0 else 0

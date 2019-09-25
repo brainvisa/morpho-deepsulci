@@ -1,3 +1,7 @@
+'''
+SNIPE Labeling Module
+'''
+
 from __future__ import print_function
 from ..method.snipe import SnipePatternClassification
 from capsul.api import Process
@@ -8,14 +12,28 @@ import json
 
 
 class PatternSnipeLabeling(Process):
+    '''
+    Process to recognize a searched fold pattern using the Scoring by Non-local
+    Image PAtch Estimator (SNIPE) based model (Coupé et al., 2012).
+    '''
+
     def __init__(self):
         super(PatternSnipeLabeling, self).__init__()
-        self.add_trait('graphs', traits.List(traits.File(output=False)))
-        self.add_trait('traindata_file', traits.File(output=False))
-        self.add_trait('param_file', traits.File(output=False))
+        self.add_trait('graphs', traits.List(traits.File(
+            output=False, desc='graphs to classify')))
+        self.add_trait('traindata_file', traits.File(
+            output=False, desc='file (.json) storing the data extracted'
+                               ' from the training base graphs'))
+        self.add_trait('param_file', traits.File(
+            output=False, desc='file (.json) storing the hyperparameters'
+                               ' (OPM number, patch sizes)'))
         self.add_trait('num_cpu', traits.Int(
-            1, output=False, optional=True))
-        self.add_trait('result_file', traits.File(output=True))
+            1, output=False, optional=True,
+            desc='number of processes that can be used to parallel the'
+                 ' calculations'))
+        self.add_trait('result_file', traits.File(
+            output=True, desc='file (.csv) with predicted class (y_pred)'
+                              ' for each of the input graphs'))
 
     def _run_process(self):
         start_time = time.time()

@@ -199,19 +199,33 @@ class SulciDeepTraining(Process):
                 print('** TEST THRESHOLDS **')
                 print()
                 for gfile, gfile_notcut in zip(glist_test, glist_notcut_test):
-                    ytrue, yscores, nbck, bck2 = method.labeling(
-                        gfile, rytrue=True, ryscores=True,
-                        rnbck=True, rbck2=True)
-                    ytrue = [sulci_side_list[y] for y in ytrue]
+                    # extract data
+                    graph = aims.read(gfile)
+                    if trfile is not None:
+                        flt.translate(graph)
+                    data = extract_data(graph)
+                    nbck = np.asarray(data['nbck'])
+                    bck2 = np.asarray(data['bck2'])
+                    names = np.asarray(data['names'])
+
+                    graph_notcut = aims.read(gfile_notcut)
+                    if trfile is not None:
+                        flt.translate(graph_notcut)
+                    data_notcut = extract_data(graph_notcut)
+                    nbck_notcut = np.asarray(data_notcut['nbck'])
+                    vert_notcut = np.asarray(data_notcut['vert'])
+
+                    # compute labeling
+                    _, _, yscores = method.labeling(gfile, bck2, names)
+
+                    # organize dataframes
                     df = pd.DataFrame()
-                    nbck = np.asarray(nbck)
                     df['point_x'] = nbck[:, 0]
                     df['point_y'] = nbck[:, 1]
                     df['point_z'] = nbck[:, 2]
                     df.sort_values(by=['point_x', 'point_y', 'point_z'],
                                    inplace=True)
-                    vert_notcut, nbck_notcut = method.labeling(
-                        gfile_notcut, rvert=True, rnbck=True)
+
                     df_notcut = pd.DataFrame()
                     nbck_notcut = np.asarray(nbck_notcut)
                     df_notcut['vert'] = vert_notcut
@@ -234,7 +248,7 @@ class SulciDeepTraining(Process):
                                 yscores, df['vert_notcut'], bck2, threshold)
                             ypred_cut = [sulci_side_list[y] for y in ypred_cut]
                             dict_scores[threshold].append((1-esi_score(
-                                ytrue, ypred_cut, sslist))*100)
+                                names, ypred_cut, sslist))*100)
                 cvi += 1
 
             dict_mscores = {k: np.mean(v) for k, v in dict_scores.iteritems()}
