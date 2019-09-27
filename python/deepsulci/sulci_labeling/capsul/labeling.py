@@ -109,6 +109,7 @@ class SulciDeepLabeling(Process):
             fat.mesher().setDecimation(100., 2., 3., 180.0)
             fat.doAll()
 
+        graph['label_property'] = 'label'
         # save graph
         aims.write(graph, self.labeled_graph)
         print('Labeling took %i sec.' % (time.time() - start_time))
