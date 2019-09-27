@@ -7,16 +7,17 @@ from ...deeptools.dataset import extract_data
 from ..method.snipe import SnipePatternClassification
 from capsul.api import Process
 from soma import aims
+from datetime import timedelta
 
 import traits.api as traits
 import numpy as np
 import json
-
+import time
 
 class PatternSnipeTraining(Process):
     '''
     Process to train the Scoring by Non-local Image PAtch Estimator (SNIPE)
-    based model (Coupé et al., 2012) to recognize a searched fold pattern.
+    based model (Coupe et al., 2012) to recognize a searched fold pattern.
 
     This process consists of two steps. The second test depends on the first
     step. However, they can be started independently if the previous steps have
@@ -74,6 +75,7 @@ class PatternSnipeTraining(Process):
             print('--- EXTRACT DATA FROM GRAPHS ---')
             print('--------------------------------')
             print()
+            start = time.time()
 
             dict_label, dict_bck, dict_bck_filtered = {}, {}, {}
             for gfile in self.graphs:
@@ -98,6 +100,10 @@ class PatternSnipeTraining(Process):
                      'dict_label': dict_label}
             with open(self.traindata_file, 'w') as f:
                 json.dump(param, f)
+            end = time.time()
+            print()
+            print("STEP 1 took %s" % str(timedelta(seconds=int(end-start))))
+            print()
         else:
             with open(self.traindata_file) as f:
                 param = json.load(f)
@@ -118,4 +124,9 @@ class PatternSnipeTraining(Process):
             print('--- FIX HYPERPARAMETERS ---')
             print('---------------------------')
             print()
+            start = time.time()
             method.find_hyperparameters(self.graphs, self.param_file)
+            end = time.time()
+            print()
+            print("STEP 2 took %s" % str(timedelta(seconds=int(end-start))))
+            print()

@@ -7,10 +7,12 @@ from ...deeptools.dataset import extract_data
 from ..method.svm import SVMPatternClassification
 from capsul.api import Process
 from soma import aims
+from datetime import timedelta
 
 import traits.api as traits
 import numpy as np
 import json
+import time
 
 
 class PatternSVMTraining(Process):
@@ -43,7 +45,7 @@ class PatternSVMTraining(Process):
     def __init__(self):
         super(PatternSVMTraining, self).__init__()
         self.add_trait('graphs', traits.List(
-            traits.File(output=False), desc='training base graphs')))
+            traits.File(output=False), desc='training base graphs'))
         self.add_trait('pattern', traits.Str(
             output=False, desc='vertex name representing the'
                                ' searched pattern'))
@@ -84,6 +86,7 @@ class PatternSVMTraining(Process):
             print('--- EXTRACT DATA FROM GRAPHS ---')
             print('--------------------------------')
             print()
+            start = time.time()
 
             dict_label, dict_bck, dict_bck_filtered = {}, {}, {}
             dict_searched_pattern = {}
@@ -113,6 +116,11 @@ class PatternSVMTraining(Process):
                      'dict_searched_pattern': dict_searched_pattern}
             with open(self.traindata_file, 'w') as f:
                 json.dump(param, f)
+
+            end = time.time()
+            print()
+            print("STEP 1 took %s" % str(timedelta(seconds=int(end-start))))
+            print()
         else:
             with open(self.traindata_file) as f:
                 param = json.load(f)
@@ -134,7 +142,12 @@ class PatternSVMTraining(Process):
             print('--- FIX HYPERPARAMETERS ---')
             print('---------------------------')
             print()
+            start = time.time()
             method.find_hyperparameters(self.graphs, self.param_file)
+            end = time.time()
+            print()
+            print("STEP 2 took %s" % str(timedelta(seconds=int(end-start))))
+            print()
         else:
             with open(self.param_file) as f:
                 param = json.load(f)
@@ -149,5 +162,10 @@ class PatternSVMTraining(Process):
             print('--- SAVE TRAINED MODEL ---')
             print('--------------------------')
             print()
+            start = time.time()
             method.learning(self.graphs)
             method.save(self.clf_file, self.scaler_file)
+            end = time.time()
+            print()
+            print("STEP 3 took %s" % str(timedelta(seconds=int(end-start))))
+            print()

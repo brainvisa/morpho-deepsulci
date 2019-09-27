@@ -8,12 +8,14 @@ from ..method.resnet import ResnetPatternClassification
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from capsul.api import Process
 from soma import aims
+from datetime import timedelta
 
 import traits.api as traits
 import numpy as np
 import json
 import torch
 import os
+import time
 
 
 class PatternDeepTraining(Process):
@@ -88,6 +90,7 @@ class PatternDeepTraining(Process):
             print('--- EXTRACT DATA FROM GRAPHS ---')
             print('--------------------------------')
             print()
+            start = time.time()
 
             bb = np.array([[100, -100], [100, -100], [100, -100]])
             dict_label, dict_bck = {}, {}
@@ -124,6 +127,10 @@ class PatternDeepTraining(Process):
                 json.dump(traindata, f)
             with open(self.param_file, 'w') as f:
                 json.dump(param, f)
+            end = time.time()
+            print()
+            print("STEP 1 took %s" % str(timedelta(seconds=int(end-start))))
+            print()
         else:
             with open(self.param_file) as f:
                 param = json.load(f)
@@ -146,6 +153,7 @@ class PatternDeepTraining(Process):
             print('--- FIX LEARNING RATE / MOMENTUM ---')
             print('------------------------------------')
             print()
+            start = time.time()
             y = np.asarray([dict_label[g] for g in self.graphs])
             n_cvinner = 3
             print('RANDOM STATE 0')
@@ -174,6 +182,10 @@ class PatternDeepTraining(Process):
                 print()
                 method.find_hyperparameters(
                     result_matrix, self.param_file, step)
+            end = time.time()
+            print()
+            print("STEP 2 took %s" % str(timedelta(seconds=int(end-start))))
+            print()
         else:
             with open(self.param_file) as f:
                 param = json.load(f)
@@ -188,6 +200,7 @@ class PatternDeepTraining(Process):
             print('--- TRAIN DEEP MODEL ---')
             print('------------------------')
             print()
+            start = time.time()
             method.trained_model = None
             y = np.asarray([dict_label[g] for g in self.graphs])
             gfile_list_train, gfile_list_test = train_test_split(
@@ -199,3 +212,7 @@ class PatternDeepTraining(Process):
 
             cpu_model = method.trained_model.to(torch.device('cpu'))
             torch.save(cpu_model.state_dict(), self.model_file)
+            end = time.time()
+            print()
+            print("STEP 3 took %s" % str(timedelta(seconds=int(end-start))))
+            print()

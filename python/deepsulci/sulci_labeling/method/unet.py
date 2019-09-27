@@ -226,8 +226,10 @@ class UnetSulciLabeling(object):
             inputs = inputs.to(self.device)
             outputs = self.trained_model(inputs)
             if bck2 is None:
-                bck2 = np.transpose(np.where(np.asarray(labels) != self.background))
-            bck_T = np.transpose(bck2)
+                bck_T = np.where(np.asarray(labels) != self.background)
+            else:
+                tr = np.min(bck2, axis=0)
+                bck_T = np.transpose(bck2 - tr)
             _, preds = torch.max(outputs.data, 1)
             ypred = preds[0][bck_T[0], bck_T[1], bck_T[2]].tolist()
             ytrue = labels[bck_T[0], bck_T[1], bck_T[2]].tolist()

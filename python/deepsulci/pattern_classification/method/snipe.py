@@ -27,11 +27,9 @@ class SnipePatternClassification(object):
         self.label_list = []
         self.distmap_list = []
 
-#        self.n_opal_range = [5, 10, 15, 20, 25, 30]
-        self.n_opal_range = [2, 4]
-#        self.patch_sizes_range = [[4], [6], [8],
-#                                  [4, 6], [6, 8], [4, 8], [4, 6, 8]]
-        self.patch_sizes_range = [[4], [4, 6]]
+        self.n_opal_range = [5, 10, 15, 20, 25, 30]
+        self.patch_sizes_range = [[4], [6], [8],
+                                  [4, 6], [6, 8], [4, 8], [4, 6, 8]]
         self.num_cpu = num_cpu
 
     def learning(self, gfile_list):

@@ -10,6 +10,7 @@ from ..analyse.stats import esi_score
 from sklearn.model_selection import KFold, train_test_split
 from capsul.api import Process
 from soma import aims
+from datetime import timedelta
 import traits.api as traits
 import numpy as np
 import pandas as pd
@@ -17,6 +18,7 @@ import json
 import torch
 import sigraph
 import os
+import time
 
 
 class SulciDeepTraining(Process):
@@ -76,7 +78,7 @@ class SulciDeepTraining(Process):
         self.add_trait('step_4', traits.Bool(
             True, output=False, optional=True,
             desc='perform the cutting hyperparameter tuning step'))
-    
+
         self.add_trait('model_file', traits.File(
             output=True,
             desc='file (.mdsm) storing neural network parameters'))
@@ -106,6 +108,7 @@ class SulciDeepTraining(Process):
             print('--- EXTRACT DATA FROM GRAPHS ---')
             print('--------------------------------')
             print()
+            start = time.time()
 
             sulci_side_list = set()
             dict_bck2, dict_names = {}, {}
@@ -120,8 +123,11 @@ class SulciDeepTraining(Process):
                     sulci_side_list.add(n)
             sulci_side_list = sorted(list(sulci_side_list))
 
-            with open(self.param_file) as f:
-                param = json.load(f)
+            if os.path.exists(self.param_file):
+                with open(self.param_file) as f:
+                    param = json.load(f)
+            else:
+                param = {}
             param['sulci_side_list'] = [str(s) for s in sulci_side_list]
             with open(self.param_file, 'w') as f:
                 json.dump(param, f)
@@ -131,6 +137,10 @@ class SulciDeepTraining(Process):
             traindata['dict_names'] = dict_names
             with open(self.traindata_file, 'w') as f:
                 json.dump(traindata, f)
+            end = time.time()
+            print()
+            print("STEP 1 took %s" % str(timedelta(seconds=int(end-start))))
+            print()
         else:
             with open(self.param_file) as f:
                 param = json.load(f)
@@ -156,6 +166,7 @@ class SulciDeepTraining(Process):
             print('--- FIX LEARNING RATE / MOMENTUM ---')
             print('------------------------------------')
             print()
+            start = time.time()
             n_cvinner = 3
             kf = KFold(n_splits=n_cvinner, shuffle=True, random_state=0)
             for step in range(3):
@@ -185,6 +196,10 @@ class SulciDeepTraining(Process):
                 print()
                 method.find_hyperparameters(
                     result_matrix, self.param_file, step)
+            end = time.time()
+            print()
+            print("STEP 2 took %s" % str(timedelta(seconds=int(end-start))))
+            print()
         else:
             with open(self.param_file) as f:
                 param = json.load(f)
@@ -199,6 +214,7 @@ class SulciDeepTraining(Process):
             print('--- TRAIN DEEP MODEL ---')
             print('------------------------')
             print()
+            start = time.time()
             method.trained_model = None
             gfile_list_train, gfile_list_test = train_test_split(
                 self.graphs, test_size=0.1)
@@ -206,6 +222,11 @@ class SulciDeepTraining(Process):
 
             cpu_model = method.trained_model.to(torch.device('cpu'))
             torch.save(cpu_model.state_dict(), self.model_file)
+
+            end = time.time()
+            print()
+            print("STEP 3 took %s" % str(timedelta(seconds=int(end-start))))
+            print()
 
         # Inner cross validation - fix cutting threshold
         if self.step_4:
@@ -215,6 +236,7 @@ class SulciDeepTraining(Process):
             print('--- FIX CUTTING THRESHOLD ---')
             print('-----------------------------')
             print()
+            start = time.time()
 
             threshold_range = [50, 100, 150, 200, 250, 300]
             dict_scores = {th: [] for th in threshold_range}
@@ -310,3 +332,8 @@ class SulciDeepTraining(Process):
 
             with open(self.param_file, 'w') as f:
                 json.dump(param, f)
+
+            end = time.time()
+            print()
+            print("STEP 4 took %s" % str(timedelta(seconds=int(end-start))))
+            print()

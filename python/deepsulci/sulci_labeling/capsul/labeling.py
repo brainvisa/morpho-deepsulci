@@ -61,6 +61,7 @@ class SulciDeepLabeling(Process):
         graph = aims.read(self.graph)
         data = extract_data(graph)
         data = {k: np.asarray(v) for k, v in data.iteritems()}
+
         _, y_pred, y_scores = method.labeling(
             self.graph, data['bck2'], ['unknown']*len(data['bck2']))
 

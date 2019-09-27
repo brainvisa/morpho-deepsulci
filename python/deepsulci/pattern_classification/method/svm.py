@@ -34,14 +34,14 @@ class SVMPatternClassification(object):
                                                [0, 0, 1, z],
                                                [0, 0, 0, 1]])
 
-        self.C_range = [0.001, 0.01] #np.logspace(-4, -1, 4)
-        self.gamma_range = [10, 100] #np.logspace(-1, 3, 5)
+        self.C_range = np.logspace(-4, -1, 4)
+        self.gamma_range = np.logspace(-1, 3, 5)
         self.trans_range = [[0],
-                            [-5, 0, 5]] #,
-#                            [-10, 0, 10],
-#                            [-20, 0, 20],
-#                            [-5, -10, 0, 10, 5],
-#                            [-20, -10, 0, 10, -20]]
+                            [-5, 0, 5],
+                            [-10, 0, 10],
+                            [-20, 0, 20],
+                            [-5, -10, 0, 10, 5],
+                            [-20, -10, 0, 10, -20]]
 
         if dict_bck is None:
             self.dict_bck = {}

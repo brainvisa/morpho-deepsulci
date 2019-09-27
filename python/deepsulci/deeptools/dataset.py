@@ -173,7 +173,7 @@ def extract_data(graph, flip=False):
                 for point in bucket.keys():
                     if flip:
                         point[0] *= -1
-                    data['nbck'].append(point)
+                    data['nbck'].append(list(point))
                     p0 = [p * v for p, v in zip(point, vs)]
                     p1 = trans_tal.transform(p0)
                     data['bck'].append(list(p1))
