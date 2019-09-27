@@ -101,7 +101,13 @@
                  "Deep model file", {"side": "L"}],
                 ["output:models/<model_id>/cnn_models/sulci_unet_model_right",
                  "Deep model file", {"side": "R"}]
-            ]
+            ],
+            "traindata_file": [
+                ["output:models/<model_id>/cnn_models/sulci_unet_model_traindata_left",
+                 "JSON file", {"side": "L"}],
+                ["output:models/<model_id>/cnn_models/sulci_unet_model_traindata_right",
+                 "JSON file", {"side": "R"}]
+            ],
         }
     }
 }
