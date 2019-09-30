@@ -38,6 +38,10 @@ class PatternDeepTraining(Process):
     The third step is to train the 18-layer 3D ResNet neural network on the
     data. The neural network parameters are saved in the file model_param.mdsm
 
+    The model takes approximately 3 hours to be trained on the GPU with a
+    training database of 100 subjects (step 1: 15min, step 2: 2h30, step 3:
+    10min).
+
     **Warning:** The searched pattern must have been manually labeled on the
     graphs of the training database containing it.
 

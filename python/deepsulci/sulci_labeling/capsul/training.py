@@ -46,6 +46,10 @@ class SulciDeepTraining(Process):
     Calinski-Harabaz index) by 3-fold cross-validation.
     This hyperparameter is saved in the Jason file param_file.
 
+    The model takes approximately 20 hours to be trained on the GPU with a
+    training database of about 60 subjects (step 1: 15min, step 2: 16h, step 3:
+    20min, step 4: 3h).
+
     **Warning:** Graphs should be of the same side!
 
     '''
