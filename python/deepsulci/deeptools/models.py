@@ -8,8 +8,8 @@ from functools import partial
 class UNet3D(nn.Module):
     """
     3DUnet model from
-    `"3D U-Net: Learning Dense Volumetric Segmentation from Sparse Annotation"
-        <https://arxiv.org/pdf/1606.06650.pdf>`
+    `"3D U-Net: Learning Dense Volumetric Segmentation from Sparse Annotation" <https://arxiv.org/pdf/1606.06650.pdf>`_
+
     Args:
         in_channels (int): number of input channels
         out_channels (int): number of output segmentation masks;
@@ -112,6 +112,7 @@ class DoubleConv(nn.Sequential):
     to change to Conv3d+BatchNorm3d+ReLU use order='cbr'.
     Use padded convolutions to make sure that the output (H_out, W_out) is the same
     as (H_in, W_in), so that you don't have to crop in the decoder path.
+
     Args:
         in_channels (int): number of input channels
         out_channels (int): number of output channels
@@ -183,6 +184,7 @@ class Encoder(nn.Module):
     than the standard (2,2,2), e.g. if the volumetric data is anisotropic
     (make sure to use complementary scale_factor in the decoder path) followed by
     a DoubleConv module.
+
     Args:
         in_channels (int): number of input channels
         out_channels (int): number of output channels
@@ -217,18 +219,19 @@ class Decoder(nn.Module):
     A single module for decoder path consisting of the upsample layer
     (either learned ConvTranspose3d or interpolation) followed by a DoubleConv
     module.
+
     Args:
-        in_channels (int): number of input channels
-        out_channels (int): number of output channels
-        interpolate (bool): if True use nn.Upsample for upsampling, otherwise
-            learn ConvTranspose3d if you have enough GPU memory and ain't
-            afraid of overfitting
-        kernel_size (int): size of the convolving kernel
-        scale_factor (tuple): used as the multiplier for the image H/W/D in
-            case of nn.Upsample or as stride in case of ConvTranspose3d
-        conv_layer_order (string): determines the order of layers
-            in `DoubleConv` module. See `DoubleConv` for more info.
-        num_groups (int): number of groups for the GroupNorm
+      in_channels (int): number of input channels
+      out_channels (int): number of output channels
+      interpolate (bool): if True use nn.Upsample for upsampling, otherwise
+          learn ConvTranspose3d if you have enough GPU memory and ain't
+          afraid of overfitting
+      kernel_size (int): size of the convolving kernel
+      scale_factor (tuple): used as the multiplier for the image H/W/D in
+          case of nn.Upsample or as stride in case of ConvTranspose3d
+      conv_layer_order (string): determines the order of layers
+          in `DoubleConv` module. See `DoubleConv` for more info.
+      num_groups (int): number of groups for the GroupNorm
     """
 
     def __init__(self, in_channels, out_channels, interpolate, kernel_size=3,

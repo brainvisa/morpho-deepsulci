@@ -4,16 +4,14 @@
 Python API for deepsulci module
 ===============================
 
-* `Sulci labeling`_
-* `Pattern classification`_
+* :ref:`Sulci labeling API`
+* :ref:`Pattern classification API`
 * :ref:`Deep learning tools`
 * :ref:`Patch tools`
 
 
-.. _sulci_labeling:
-
-Sulci labeling
---------------
+Sulci labeling API
+------------------
 
 .. automodule:: deepsulci.sulci_labeling.analyse.stats
     :members:
@@ -25,10 +23,8 @@ Sulci labeling
     :members:
 
 
-.. _patern_classification:
-
-Pattern classification
-----------------------
+Pattern classification API
+--------------------------
 
 .. automodule:: deepsulci.pattern_classification.analyse.stats
     :members:
