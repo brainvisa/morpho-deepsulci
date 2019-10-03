@@ -10,6 +10,9 @@ import sigraph
 
 
 class SulciDataset(Dataset):
+    '''
+    Sulci dataset class
+    '''
     def __init__(self, gfile_list, dict_sulci,
                  train=True, translation_file=None,
                  dict_bck2={}, dict_names={}):
@@ -82,6 +85,9 @@ class SulciDataset(Dataset):
 
 
 class PatternDataset(Dataset):
+    '''
+    Pattern dataset (for pattern classification)
+    '''
     def __init__(self, gfile_list, pattern, bb, train=True,
                  dict_bck={}, dict_label={}, labels=None):
         self.gfile_list = gfile_list
@@ -158,6 +164,9 @@ class PatternDataset(Dataset):
 
 
 def extract_data(graph, flip=False):
+    '''
+    Extract sulci points data from sulcal graphs (.arg files)
+    '''
     trans_tal = aims.GraphManip.talairach(graph)
     vs = graph['voxel_size']
     bck_types = ['aims_ss', 'aims_bottom', 'aims_other']
@@ -185,6 +194,9 @@ def extract_data(graph, flip=False):
 
 
 def apply_bounding_box(points, bb):
+    '''
+    Crop points with a bounding box
+    '''
     bb = np.asarray(bb)
     points = np.asarray(points)
     inidx = np.all(np.logical_and(bb[:, 0] <= points, points <= bb[:, 1]),
@@ -282,6 +294,9 @@ def rotation_matrix(angle, direction, point=None):
 
 
 def random_rotation(center, rot_angle):
+    '''
+    Apply a random rotation (random axis and angle) around a given center
+    '''
     th = random.uniform(0, 2*math.pi)
     z = random.uniform(-1, 1)
     direction = [np.sqrt(1-z**2)*np.cos(th), np.sqrt(1-z**2)*np.sin(th), z]
@@ -293,6 +308,9 @@ def random_rotation(center, rot_angle):
 
 
 def rotation_bck(bck, transrot):
+    '''
+    Apply a rotation to a bucket (set of voxels)
+    '''
     bck_4d = np.vstack([np.transpose(bck), np.ones(len(bck))])
     bck_4d_trans = np.dot(transrot, bck_4d)
     bck = np.transpose(bck_4d_trans[:-1])

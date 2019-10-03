@@ -17,6 +17,10 @@ import joblib
 
 
 class SVMPatternClassification(object):
+    '''
+    SVM classifier for pattern classification
+    '''
+
     def __init__(self, pattern=None, names_filter=None,
                  C=1, gamma=0.01, trans=[0],
                  dict_bck=None, dict_bck_filtered=None,

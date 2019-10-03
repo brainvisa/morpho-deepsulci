@@ -8,6 +8,9 @@ import numpy as np
 
 
 def cutting(y_scores, y_vert, bck, threshold, vs=1.):
+    '''
+    Cut elementary fold according to voxel-wise classification scores
+    '''
 
     # unique points
     # TODO. Optimizer parce que cest trop trop long

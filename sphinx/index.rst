@@ -2,8 +2,16 @@
 Morphologist deep sulci toolbox
 ===============================
 
-gloup gloup
+Python API
+==========
 
-.. automodule:: deepsulci.pattern_classification.capsul.resnet_training
-    :members:
+:doc:`api`
 
+
+Capsul processes
+================
+
+.. toctree::
+
+    process_docs/deepsulci/sulci_labeling/index.rst
+    process_docs/deepsulci/pattern_classification/index.rst

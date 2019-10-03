@@ -4,16 +4,25 @@ import numpy as np
 
 
 def acc_score(y_true, y_pred):
+    '''
+    ACC score
+    '''
     y_true = np.asarray(y_true)
     y_pred = np.asarray(y_pred)
     return len(y_true[y_true == y_pred]) / float(len(y_true))
 
 
 def bacc_score(y_true, y_pred, labels):
+    '''
+    BACC score
+    '''
     return recall_score(y_true, y_pred, labels, average='macro')
 
 
 def esi_score(y_true, y_pred, labels):
+    '''
+    ESI score
+    '''
     y_true = np.asarray(y_true)
     y_pred = np.asarray(y_pred)
     tp, fp, fn, s = {}, {}, {}, {}

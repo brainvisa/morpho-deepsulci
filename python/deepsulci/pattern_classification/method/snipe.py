@@ -13,6 +13,10 @@ import itertools
 
 
 class SnipePatternClassification(object):
+    '''
+    SNIPE classifier for pattern classification
+    '''
+
     def __init__(self, pattern=None, names_filter=None,
                  n_opal=10, patch_sizes=[6], num_cpu=1,
                  dict_bck=None, dict_bck_filtered=None, dict_label=None):
@@ -257,6 +261,9 @@ def grading(list_dfann, grade_list):
 def subject_labeling(gfile, dict_bck, translation, mask, vol_size, n_opal,
                      distmap_list, bck_list, proba_list, label_list,
                      patch_sizes):
+    '''
+    Label a subject sulcal graph (.arg file) for a specific pattern search using the SNIPE method
+    '''
     print('Labeling %s' % gfile)
     distmap_list = [aims.Volume(d) for d in distmap_list]
     # Extract bucket

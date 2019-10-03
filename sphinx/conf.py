@@ -14,6 +14,7 @@
 from __future__ import print_function
 import sys
 import os
+import subprocess
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -79,6 +80,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.extlinks',
               'sphinx.ext.inheritance_diagram',
               'sphinx.ext.autosummary',
+              'sphinx.ext.autosectionlabel',
               napoleon]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -317,3 +319,23 @@ intersphinx_mapping = {
                                   + somaworkflow_version + '/sphinx'), None),
     'python': ('http://docs.python.org/2.7', None),
 }
+
+# generate pipeline and processes docs
+#sphinx_dir = sys.argv[-1]  # TODO: secure this - maybe not always OK
+# we must actually write in sources for now.
+sphinx_dir = os.path.dirname(__file__)
+proc_rst_dir = os.path.join(sphinx_dir, 'process_docs', 'deepsulci')
+if not os.path.exists(proc_rst_dir):
+    os.makedirs(proc_rst_dir)
+cmd = [sys.executable, '-m', 'capsul.sphinxext.capsul_pipeline_rst',
+       '-i', 'deepsulci.sulci_labeling.capsul',
+       '-o', proc_rst_dir, '--schema']
+print('generating CAPSUL processes docs...')
+print(cmd)
+subprocess.check_output(cmd)
+cmd = [sys.executable, '-m', 'capsul.sphinxext.capsul_pipeline_rst',
+       '-i', 'deepsulci.pattern_classification.capsul',
+       '-o', proc_rst_dir, '--schema']
+print(cmd)
+subprocess.check_output(cmd)
+

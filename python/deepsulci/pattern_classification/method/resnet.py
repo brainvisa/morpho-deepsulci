@@ -17,6 +17,10 @@ import os
 
 
 class ResnetPatternClassification(object):
+    '''
+    ResNet classifier for pattern classification
+    '''
+
     def __init__(self, bounding_box, pattern=None, cuda=-1, names_filter=None,
                  lr=0.0001, momentum=0.9, batch_size=10, dict_bck=None,
                  dict_label=None):
