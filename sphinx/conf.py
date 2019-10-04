@@ -15,6 +15,7 @@ from __future__ import print_function
 import sys
 import os
 import subprocess
+import sphinx
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -80,8 +81,10 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.extlinks',
               'sphinx.ext.inheritance_diagram',
               'sphinx.ext.autosummary',
-              'sphinx.ext.autosectionlabel',
               napoleon]
+
+if sphinx.version_info >= (1, 3):
+    extensions.append('sphinx.ext.autosectionlabel')
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
