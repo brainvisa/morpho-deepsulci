@@ -59,3 +59,6 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Sphinx documentation
+/sphinx/process_docs/
