@@ -19,6 +19,7 @@ import torch
 import sigraph
 import os
 import time
+import six
 
 
 class SulciDeepTraining(Process):
@@ -324,10 +325,11 @@ class SulciDeepTraining(Process):
                                 names, ypred_cut, sslist))*100)
                 cvi += 1
 
-            dict_mscores = {k: np.mean(v) for k, v in dict_scores.iteritems()}
+            dict_mscores = {k: np.mean(v)
+                            for k, v in six.iteritems(dict_scores)}
 
             print()
-            for k, v in dict_mscores.iteritems():
+            for k, v in six.iteritems(dict_mscores):
                 print('threshold: %f, accuracy mean: %f' % (k, v))
             param['cutting_threshold'] = max(dict_mscores,
                                              key=dict_mscores.get)

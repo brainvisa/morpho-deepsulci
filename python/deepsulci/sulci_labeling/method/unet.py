@@ -210,32 +210,50 @@ class UnetSulciLabeling(object):
 
     def labeling(self, gfile, bck2=None, names=None):
         print('Labeling', gfile)
-        self.trained_model = self.trained_model.to(self.device)
-        self.trained_model.eval()
-        dict_bck2 = {} if bck2 is None else {gfile: bck2}
-        dict_names = {} if names is None else {gfile: names}
-        dataset = SulciDataset(
-            [gfile], self.dict_sulci, train=False,
-            translation_file=self.translation_file,
-            dict_bck2=dict_bck2, dict_names=dict_names)
-        data = dataset[0]
+        trial = 0
+        while trial < 2:
+            trial += 1
+            try:
+                self.trained_model = self.trained_model.to(self.device)
+                self.trained_model.eval()
+                dict_bck2 = {} if bck2 is None else {gfile: bck2}
+                dict_names = {} if names is None else {gfile: names}
+                dataset = SulciDataset(
+                    [gfile], self.dict_sulci, train=False,
+                    translation_file=self.translation_file,
+                    dict_bck2=dict_bck2, dict_names=dict_names)
+                data = dataset[0]
 
-        with torch.no_grad():
-            inputs, labels = data
-            inputs = inputs.unsqueeze(0)
-            inputs = inputs.to(self.device)
-            outputs = self.trained_model(inputs)
-            if bck2 is None:
-                bck_T = np.where(np.asarray(labels) != self.background)
-            else:
-                tr = np.min(bck2, axis=0)
-                bck_T = np.transpose(bck2 - tr)
-            _, preds = torch.max(outputs.data, 1)
-            ypred = preds[0][bck_T[0], bck_T[1], bck_T[2]].tolist()
-            ytrue = labels[bck_T[0], bck_T[1], bck_T[2]].tolist()
-            yscores = outputs[0][:, bck_T[0], bck_T[1], bck_T[2]].tolist()
-            yscores = np.transpose(yscores)
-        return ytrue, ypred, yscores
+                with torch.no_grad():
+                    inputs, labels = data
+                    inputs = inputs.unsqueeze(0)
+                    inputs = inputs.to(self.device)
+                    outputs = self.trained_model(inputs)
+                    if bck2 is None:
+                        bck_T = np.where(np.asarray(labels) != self.background)
+                    else:
+                        tr = np.min(bck2, axis=0)
+                        bck_T = np.transpose(bck2 - tr)
+                    _, preds = torch.max(outputs.data, 1)
+                    ypred = preds[0][bck_T[0], bck_T[1], bck_T[2]].tolist()
+                    ytrue = labels[bck_T[0], bck_T[1], bck_T[2]].tolist()
+                    yscores = outputs[0][:, bck_T[0], bck_T[1],
+                                         bck_T[2]].tolist()
+                    yscores = np.transpose(yscores)
+                return ytrue, ypred, yscores
+            except RuntimeError as e:
+                print(e)
+                if self.cuda >= 0 and e.args[0].find('not enough memory') != -1:
+                    print('not enough memory on GPU. Switching to CPU.')
+                    self.cuda = -1
+                    self.device = torch.device('cpu')
+                elif self.cuda >= 0 \
+                        and e.args[0].find('CUDNN_STATUS_ARCH_MISMATCH') != -1:
+                    print('This GPU is not supported. Switching to CPU.')
+                    self.cuda = -1
+                    self.device = torch.device('cpu')
+                else:
+                    raise
 
     def find_hyperparameters(self, result_matrix, param_outfile, step=0):
         # STEP 0

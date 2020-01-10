@@ -16,6 +16,7 @@ import pandas as pd
 import numpy as np
 import time
 import json
+import six
 
 
 class SulciDeepLabeling(Process):
@@ -60,7 +61,7 @@ class SulciDeepLabeling(Process):
         # voxel labeling
         graph = aims.read(self.graph)
         data = extract_data(graph)
-        data = {k: np.asarray(v) for k, v in data.iteritems()}
+        data = {k: np.asarray(v) for k, v in six.iteritems(data)}
 
         _, y_pred, y_scores = method.labeling(
             self.graph, data['bck2'], ['unknown']*len(data['bck2']))
