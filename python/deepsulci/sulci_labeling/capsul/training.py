@@ -64,6 +64,7 @@ class SulciDeepTraining(Process):
             desc='training base graphs before manual cutting of the'
                  ' elementary folds'))
         self.add_trait('cuda', traits.Int(
+            0,
             output=False, desc='device on which to run the training'
                                '(-1 for cpu, i>=0 for the i-th gpu)'))
         self.add_trait('translation_file', traits.File(

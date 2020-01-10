@@ -44,6 +44,10 @@ class SulciDeepLabeling(Process):
 
         self.add_trait('labeled_graph', traits.File(
             output=True, desc='output labeled graph'))
+        self.add_trait('cuda', traits.Int(
+            -1,
+            output=False, desc='device on which to run the training'
+                               '(-1 for cpu, i>=0 for the i-th gpu)'))
 
     def _run_process(self):
         start_time = time.time()
@@ -51,7 +55,7 @@ class SulciDeepLabeling(Process):
             param = json.load(f)
         self.sulci_side_list = param['sulci_side_list']
         method = UnetSulciLabeling(
-            self.sulci_side_list, num_filter=64, batch_size=1, cuda=-1)
+            self.sulci_side_list, num_filter=64, batch_size=1, cuda=self.cuda)
         method.load(self.model_file)
 
         dict_sulci = {self.sulci_side_list[i]: i for i in range(len(
