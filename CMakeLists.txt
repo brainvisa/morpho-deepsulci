@@ -48,7 +48,7 @@ add_custom_target( get-deepsulci-models ALL
   "--timeout" "5" "--silent"
   )
 add_custom_target( install-deepsulci-models
-  COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "${CMAKE_BINARY_DIR}/share/brainvisa-share-${brainvisa-share_VERSION_MAJOR}.${brainvisa-share_VERSION_MINOR}/models/models/models_2019/cnn_models" "$(BRAINVISA_INSTALL_PREFIX)/share/brainvisa-share-${brainvisa-share_VERSION_MAJOR}.${brainvisa-share_VERSION_MINOR}/models/models/models_2019/cnn_models"
+  COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "${CMAKE_BINARY_DIR}/share/brainvisa-share-${brainvisa-share_VERSION_MAJOR}.${brainvisa-share_VERSION_MINOR}/models/models_2019/cnn_models" "$(BRAINVISA_INSTALL_PREFIX)/share/brainvisa-share-${brainvisa-share_VERSION_MAJOR}.${brainvisa-share_VERSION_MINOR}/models/models_2019/cnn_models"
   )
 
 add_dependencies( install-morpho-deepsulci install-deepsulci-models )
