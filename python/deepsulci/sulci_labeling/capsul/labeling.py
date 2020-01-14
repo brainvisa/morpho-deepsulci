@@ -48,8 +48,24 @@ class SulciDeepLabeling(Process):
             -1,
             output=False, desc='device on which to run the training'
                                '(-1 for cpu, i>=0 for the i-th gpu)'))
+        self.add_trait('fix_random_seed',
+                       traits.Bool(False, output=False,
+                                   desc='Use same random sequence'))
 
     def _run_process(self):
+        if self.fix_random_seed:
+            import torch
+            torch.manual_seed(0)
+            try:
+                import torch.cudnn
+                torch.cudnn.deterministic = True
+                torch.backends.cudnn.benchmark = False
+            except:
+                pass
+            import random
+            random.seed(0)
+            np.random.seed(0)
+
         start_time = time.time()
         with open(self.param_file) as f:
             param = json.load(f)
