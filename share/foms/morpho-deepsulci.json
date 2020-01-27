@@ -4,10 +4,6 @@
     "fom_import": ["formats-brainvisa-1.0", "brainvisa-formats-3.2.0",
                    "shared-brainvisa-1.0", "morphologist-auto-1.0"],
 
-    "formats": {
-        "Deep model file": "mdsm"
-    },
-
     "attribute_definitions" : {
       "acquisition" : {"default_value" : "default_acquisition"},
       "analysis" : {"default_value" : "default_analysis"},
