@@ -3,11 +3,14 @@ Error Computation Module
 '''
 
 from __future__ import print_function
+from __future__ import absolute_import
 from soma import aims, aimsalgo
 from capsul.api import Process
 import traits.api as traits
 import pandas as pd
 import numpy as np
+from six.moves import range
+from six.moves import zip
 
 
 class ErrorComputation(Process):
@@ -48,8 +51,8 @@ class ErrorComputation(Process):
         vvol = vs[0]*vs[1]*vs[2]
         true_bck, true_names, _ = extract_data(true_graph)
         nlist = list(set(true_names))
-        dnames = {k: v+1 for k, v in zip(nlist, range(len(nlist)))}
-        dnum = {v+1: k for k, v in zip(nlist, range(len(nlist)))}
+        dnames = {k: v+1 for k, v in zip(nlist, list(range(len(nlist))))}
+        dnum = {v+1: k for k, v in zip(nlist, list(range(len(nlist))))}
         fm = aims.FastMarching()
         vol = aims.Volume_S16(mri.getSizeX(), mri.getSizeY(), mri.getSizeZ())
         vol.fill(0)

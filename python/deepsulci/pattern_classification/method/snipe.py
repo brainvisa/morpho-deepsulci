@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
+from __future__ import absolute_import
 from ..analyse.stats import balanced_accuracy
 from ...patchtools.optimized_patchmatch import OptimizedPatchMatch
 from ...deeptools.dataset import extract_data
@@ -10,6 +11,8 @@ from joblib import Parallel, delayed
 import numpy as np
 import json
 import itertools
+from six.moves import range
+from six.moves import zip
 
 
 class SnipePatternClassification(object):
@@ -40,7 +43,7 @@ class SnipePatternClassification(object):
         self.bck_list, self.label_list, self.distmap_list = [], [], []
         # Extract buckets and labels from the graphs
         for gfile in gfile_list:
-            if gfile not in self.dict_bck.keys():
+            if gfile not in list(self.dict_bck.keys()):
                 graph = aims.read(gfile)
                 side = gfile[gfile.rfind('/')+1:gfile.rfind('/')+2]
                 data = extract_data(graph, flip=True if side == 'R' else False)
@@ -125,7 +128,7 @@ class SnipePatternClassification(object):
         print('Labeling %s' % gfile)
         # Extract bucket
         fm = aims.FastMarching()
-        if gfile not in self.dict_bck.keys():
+        if gfile not in list(self.dict_bck.keys()):
             graph = aims.read(gfile)
             side = gfile[gfile.rfind('/')+1:gfile.rfind('/')+2]
             data = extract_data(graph, flip=True if side == 'R' else False)
@@ -229,11 +232,11 @@ def apply_bounding_box(points, bb):
     inidx = np.all(np.logical_and(bb[:, 0] <= points, points < bb[:, 1]),
                    axis=1)
     inbox = points[inidx]
-    return inbox, np.asarray(range(len(points)))[inidx]
+    return inbox, np.asarray(list(range(len(points))))[inidx]
 
 
 def grading(list_dfann, grade_list):
-    idxs = range(len(list_dfann[0]))
+    idxs = list(range(len(list_dfann[0])))
     grad_list = np.zeros(len(list_dfann[0]))
 
     for idx in idxs:
@@ -268,7 +271,7 @@ def subject_labeling(gfile, dict_bck, translation, mask, vol_size, n_opal,
     distmap_list = [aims.Volume(d) for d in distmap_list]
     # Extract bucket
     fm = aims.FastMarching()
-    if gfile not in dict_bck.keys():
+    if gfile not in list(dict_bck.keys()):
         graph = aims.read(gfile)
         side = gfile[gfile.rfind('/')+1:gfile.rfind('/')+2]
         data = extract_data(graph, flip=True if side == 'R' else False)

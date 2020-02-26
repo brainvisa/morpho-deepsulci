@@ -3,6 +3,7 @@ SVM Training Module
 '''
 
 from __future__ import print_function
+from __future__ import absolute_import
 from ...deeptools.dataset import extract_data
 from ..method.svm import SVMPatternClassification
 from capsul.api import Process

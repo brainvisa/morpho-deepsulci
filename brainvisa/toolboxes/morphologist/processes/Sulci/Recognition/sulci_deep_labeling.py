@@ -5,6 +5,7 @@ Created on Wed Jul 24 11:06:07 2019
 @author: lb251181
 """
 
+from __future__ import absolute_import
 from brainvisa.processes import *
 from brainvisa.processing import capsul_process
 
