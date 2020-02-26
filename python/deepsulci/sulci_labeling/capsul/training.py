@@ -3,6 +3,7 @@ UNET Training Module
 '''
 
 from __future__ import print_function
+from __future__ import absolute_import
 from ...deeptools.dataset import extract_data
 from ..method.unet import UnetSulciLabeling
 from ..method.cutting import cutting
@@ -20,6 +21,8 @@ import sigraph
 import os
 import time
 import six
+from six.moves import range
+from six.moves import zip
 
 
 class SulciDeepTraining(Process):

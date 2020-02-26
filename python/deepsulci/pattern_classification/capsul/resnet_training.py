@@ -3,6 +3,7 @@ ResNet Training Module
 '''
 
 from __future__ import print_function
+from __future__ import absolute_import
 from ...deeptools.dataset import extract_data
 from ..method.resnet import ResnetPatternClassification
 from sklearn.model_selection import StratifiedKFold, train_test_split
@@ -16,6 +17,7 @@ import json
 import torch
 import os
 import time
+from six.moves import range
 
 
 class PatternDeepTraining(Process):

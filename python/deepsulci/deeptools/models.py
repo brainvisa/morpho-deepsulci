@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 from functools import partial
+from six.moves import range
+from six.moves import zip
 
 class UNet3D(nn.Module):
     """

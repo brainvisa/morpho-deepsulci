@@ -3,6 +3,7 @@ UNET Labeling Module
 '''
 
 from __future__ import print_function
+from __future__ import absolute_import
 from ...deeptools.dataset import extract_data
 from ..method.cutting import cutting
 from ..method.unet import UnetSulciLabeling
@@ -17,6 +18,7 @@ import numpy as np
 import time
 import json
 import six
+from six.moves import range
 
 
 class SulciDeepLabeling(Process):

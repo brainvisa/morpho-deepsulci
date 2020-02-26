@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
+from __future__ import absolute_import
 from soma import aims
 import pandas as pd
 import numpy as np
 import random
 import math
 import time
+from six.moves import range
+from six.moves import zip
 
 
 class OptimizedPatchMatch:
@@ -43,22 +46,22 @@ class OptimizedPatchMatch:
     def initialization(self, distmap, dnum,
                        distmap_list, bck_list, bckmap_list, proba_list):
         bck = np.transpose(np.where(np.asarray(distmap) == 0)[:3])
-        df_ann = pd.DataFrame(index=range(len(bck)),
+        df_ann = pd.DataFrame(index=list(range(len(bck))),
                               columns=['ann_point_x', 'ann_point_y',
                                        'ann_point_z', 'ann_name', 'ann_num',
                                        'dist', 'prop_num'])
         for d in range(self.dim):
             df_ann[self.col_dim[d]] = bck[:, d]
-        df_ann['prop_num'] = range(len(bck))
+        df_ann['prop_num'] = list(range(len(bck)))
 
         i = 0
-        for ipt, j in zip(bck, range(len(bck))):
+        for ipt, j in zip(bck, list(range(len(bck)))):
             patch = self.vol_compute_patch(distmap, ipt, self.patch_size)
             if proba_list is None:
-                rand_num = random.choice(range(len(bck_list)))
+                rand_num = random.choice(list(range(len(bck_list))))
             else:
                 rand_num = int(round(np.random.choice(
-                    range(len(bck_list)), 1,
+                    list(range(len(bck_list))), 1,
                     p=np.array(proba_list)/float(np.sum(proba_list)))[0]))
             s = 0
             while True:
@@ -72,7 +75,7 @@ class OptimizedPatchMatch:
                         s += 1
                     else:
                         s = 0
-                        rand_num = random.choice(range(len(bck_list)))
+                        rand_num = random.choice(list(range(len(bck_list))))
             rand_point = random.choice(inpoints)
             rand_patch = self.vol_compute_patch(distmap_list[rand_num],
                                                 rand_point, self.patch_size)
@@ -188,7 +191,7 @@ class OptimizedPatchMatch:
         inidx = np.all(np.logical_and(bb[:, 0] <= points, points < bb[:, 1]),
                        axis=1)
         inbox = points[inidx]
-        return inbox, np.asarray(range(len(points)))[inidx]
+        return inbox, np.asarray(list(range(len(points))))[inidx]
 
     def distance(self, distmap0, distmap1):
         d0 = np.mean(distmap1[np.asarray(distmap0) == 0]**2)

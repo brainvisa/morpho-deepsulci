@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
+from __future__ import absolute_import
 from ...deeptools.dataset import SulciDataset
 from ...deeptools.early_stopping import EarlyStopping
 from ...deeptools.models import UNet3D
@@ -14,6 +15,8 @@ import pandas as pd
 import time
 import copy
 import json
+from six.moves import range
+from six.moves import zip
 
 
 class UnetSulciLabeling(object):

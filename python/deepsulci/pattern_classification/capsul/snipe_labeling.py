@@ -3,6 +3,7 @@ SNIPE Labeling Module
 '''
 
 from __future__ import print_function
+from __future__ import absolute_import
 from ..method.snipe import SnipePatternClassification
 from capsul.api import Process
 import traits.api as traits
