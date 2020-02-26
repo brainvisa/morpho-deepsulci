@@ -75,7 +75,7 @@ class SVMPatternClassification(object):
         # Extract buckets and labels from the graphs
         label = np.NaN if self.pattern is None else 0
         for gfile in gfile_list:
-            if gfile not in list(self.dict_bck.keys()):
+            if gfile not in self.dict_bck:
                 graph = aims.read(gfile)
                 side = gfile[gfile.rfind('/')+1:gfile.rfind('/')+2]
                 data = extract_data(graph, flip=True if side == 'R' else False)
@@ -123,7 +123,7 @@ class SVMPatternClassification(object):
     def subject_labeling(self, gfile):
         print('Labeling %s' % gfile)
         # Extract bucket
-        if gfile not in list(self.dict_bck.keys()):
+        if gfile not in self.dict_bck:
             graph = aims.read(gfile)
             side = gfile[gfile.rfind('/')+1:gfile.rfind('/')+2]
             data = extract_data(graph, flip=True if side == 'R' else False)

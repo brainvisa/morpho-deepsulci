@@ -227,7 +227,7 @@ class ResnetPatternClassification(object):
         # STEP 0
         if step == 0:
             best_bacc = 0
-            for lr, j in zip(self.lr_range, list(range(len(self.lr_range)))):
+            for lr, j in zip(self.lr_range, range(len(self.lr_range))):
                 # compute acc
                 y_true, y_pred = [], []
                 for i in range(3):
@@ -257,7 +257,7 @@ class ResnetPatternClassification(object):
             best_lr = param['best_lr0']
             best_bacc = param['best_bacc']
             lr1_range = [best_lr0/4, best_lr0/2, best_lr0*2, best_lr0*4]
-            for lr, j in zip(lr1_range, list(range(len(lr1_range)))):
+            for lr, j in zip(lr1_range, range(len(lr1_range))):
                 # compute acc
                 y_true, y_pred = [], []
                 for i in range(3):
@@ -280,7 +280,7 @@ class ResnetPatternClassification(object):
             best_bacc = param['best_bacc']
             best_momentum = 0.9
             for momentum, j in zip(self.momentum_range,
-                                   list(range(len(self.momentum_range)))):
+                                   range(len(self.momentum_range))):
                 # compute acc
                 y_true, y_pred = [], []
                 for i in range(3):

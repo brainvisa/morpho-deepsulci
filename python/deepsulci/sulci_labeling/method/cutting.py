@@ -21,13 +21,13 @@ def cutting(y_scores, y_vert, bck, threshold, vs=1.):
     conv = np.zeros(len(bck), dtype=int)
     conv -= 1
     ubck = []
-    for p, i in zip(bck, list(range(len(bck)))):
+    for p, i in zip(bck, range(len(bck))):
         if conv[i] < 0:
             conv[np.all(bck == p, axis=1)] = len(ubck)
             ubck.append(p)
     ubck = np.asarray(ubck)
     inv_conv = [[] for i in ubck]
-    for i, j in zip(list(range(len(conv))), conv):
+    for i, j in zip(range(len(conv)), conv):
         inv_conv[j].append(i)
 
     y_vert = np.asarray(y_vert)

@@ -43,7 +43,7 @@ class SnipePatternClassification(object):
         self.bck_list, self.label_list, self.distmap_list = [], [], []
         # Extract buckets and labels from the graphs
         for gfile in gfile_list:
-            if gfile not in list(self.dict_bck.keys()):
+            if gfile not in self.dict_bck:
                 graph = aims.read(gfile)
                 side = gfile[gfile.rfind('/')+1:gfile.rfind('/')+2]
                 data = extract_data(graph, flip=True if side == 'R' else False)
@@ -128,7 +128,7 @@ class SnipePatternClassification(object):
         print('Labeling %s' % gfile)
         # Extract bucket
         fm = aims.FastMarching()
-        if gfile not in list(self.dict_bck.keys()):
+        if gfile not in self.dict_bck:
             graph = aims.read(gfile)
             side = gfile[gfile.rfind('/')+1:gfile.rfind('/')+2]
             data = extract_data(graph, flip=True if side == 'R' else False)
@@ -232,7 +232,7 @@ def apply_bounding_box(points, bb):
     inidx = np.all(np.logical_and(bb[:, 0] <= points, points < bb[:, 1]),
                    axis=1)
     inbox = points[inidx]
-    return inbox, np.asarray(list(range(len(points))))[inidx]
+    return inbox, np.asarray(range(len(points)))[inidx]
 
 
 def grading(list_dfann, grade_list):
@@ -271,7 +271,7 @@ def subject_labeling(gfile, dict_bck, translation, mask, vol_size, n_opal,
     distmap_list = [aims.Volume(d) for d in distmap_list]
     # Extract bucket
     fm = aims.FastMarching()
-    if gfile not in list(dict_bck.keys()):
+    if gfile not in dict_bck:
         graph = aims.read(gfile)
         side = gfile[gfile.rfind('/')+1:gfile.rfind('/')+2]
         data = extract_data(graph, flip=True if side == 'R' else False)

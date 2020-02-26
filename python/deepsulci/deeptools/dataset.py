@@ -21,7 +21,7 @@ class SulciDataset(Dataset):
                  dict_bck2={}, dict_names={}):
         self.gfile_list = gfile_list
         self.dict_sulci = dict_sulci
-        if 'background' not in list(self.dict_sulci.keys()):
+        if 'background' not in self.dict_sulci:
             self.dict_sulci['background'] = -1
         self.train = train
         self.rot_angle = math.pi/16
@@ -43,7 +43,7 @@ class SulciDataset(Dataset):
 
     def __getitem__(self, index):
         gfile = self.gfile_list[index]
-        if gfile in list(self.dict_bck2.keys()):
+        if gfile in self.dict_bck2:
             bck2 = np.asarray(self.dict_bck2[gfile])
             names = np.asarray(self.dict_names[gfile])
         else:
@@ -123,7 +123,7 @@ class PatternDataset(Dataset):
         gfile = self.gfile_list[index]
 
         # Bucket extraction
-        if gfile in list(self.dict_bck.keys()):
+        if gfile in self.dict_bck:
             bck = self.dict_bck[gfile]
             label = self.dict_label[gfile]
         else:
@@ -205,7 +205,7 @@ def apply_bounding_box(points, bb):
     inidx = np.all(np.logical_and(bb[:, 0] <= points, points <= bb[:, 1]),
                    axis=1)
     inbox = points[inidx]
-    return inbox, np.asarray(list(range(len(points))))[inidx]
+    return inbox, np.asarray(range(len(points)))[inidx]
 
 
 def unit_vector(data, axis=None, out=None):
