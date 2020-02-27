@@ -64,7 +64,10 @@ print('timeout:', timeout)
 context = Context()
 
 destdir = options.output
-if not os.path.exists(destdir):
+if os.path.exists(destdir) and os.listdir(destdir):
+    context.write('skipping download:', destdir, 'exists and is not empty.')
+    sys.exit(0)
+else:
     os.makedirs(destdir)
 context.write('install in dir:', destdir)
 
