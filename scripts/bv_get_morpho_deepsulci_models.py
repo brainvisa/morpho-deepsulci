@@ -67,7 +67,7 @@ destdir = options.output
 if os.path.exists(destdir) and os.listdir(destdir):
     context.write('skipping download:', destdir, 'exists and is not empty.')
     sys.exit(0)
-else:
+elif not os.path.exists(destdir):
     os.makedirs(destdir)
 context.write('install in dir:', destdir)
 
