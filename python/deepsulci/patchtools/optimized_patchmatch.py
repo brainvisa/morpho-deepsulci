@@ -11,7 +11,7 @@ from six.moves import range
 from six.moves import zip
 
 
-class OptimizedPatchMatch:
+class OptimizedPatchMatch(object):
     '''
     Optimized PatchMatch algorithm
     '''
