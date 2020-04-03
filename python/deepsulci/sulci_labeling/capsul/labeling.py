@@ -24,6 +24,10 @@ from six.moves import range
 class SulciDeepLabeling(Process):
     '''
     Process to label a new graph using a 3D U-Net convolutional neural network.
+
+    The process can work using a GPU or on CPU. It requires a fair amount of RAM
+    memory (about 4-5 GB). If not enough memory can be allocated, the process
+    will abort with an error (thus will not hang the whole machine).
     '''
 
     def __init__(self):
