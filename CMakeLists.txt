@@ -45,7 +45,7 @@ set( get_models_cmd
   "${CMAKE_CURRENT_SOURCE_DIR}/scripts/bv_get_morpho_deepsulci_models.py" )
 add_custom_target( get-deepsulci-models ALL
   COMMAND "${PYTHON_HOST_EXECUTABLE}" "${get_models_cmd}" "-o" "${CMAKE_BINARY_DIR}/share/brainvisa-share-${brainvisa-share_VERSION_MAJOR}.${brainvisa-share_VERSION_MINOR}/models" "-i" "${MDS_MODEL_DOWNLOAD_SOURCE}"
-  "--timeout" "5" "--silent"
+  "--timeout" "5" "--silent" "--check"
   )
 add_custom_target( install-deepsulci-models
   COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "${CMAKE_BINARY_DIR}/share/brainvisa-share-${brainvisa-share_VERSION_MAJOR}.${brainvisa-share_VERSION_MINOR}/models/models_2019/cnn_models" "$(BRAINVISA_INSTALL_PREFIX)/share/brainvisa-share-${brainvisa-share_VERSION_MAJOR}.${brainvisa-share_VERSION_MINOR}/models/models_2019/cnn_models"

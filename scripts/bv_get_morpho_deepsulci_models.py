@@ -48,6 +48,9 @@ parser.add_option('-t', '--timeout', type='float',
                   help='ftp timeout (in seconds), default: 15', default=15)
 parser.add_option('-s', '--silent', action='store_true',
                   help='do not raise an error when the timeout fails')
+parser.add_option('--check', action='store_true',
+                  help='check if it has not been already done. If the output '
+                  'files already exist, nothing is done.')
 
 options, args = parser.parse_args(sys.argv)
 if options.output is None:
@@ -64,6 +67,14 @@ print('timeout:', timeout)
 context = Context()
 
 destdir = options.output
+
+if options.check:
+    if os.path.isdir(destdir) and os.path.exists(os.path.join(
+            destdir, 'models_2019', 'cnn_models',
+            'sulci_unet_model_left.mdsm')):
+        print('Morphologist sulci CNN Models are already here.')
+        sys.exit(0)
+
 if not os.path.exists(destdir):
     os.makedirs(destdir)
 context.write('install in dir:', destdir)
