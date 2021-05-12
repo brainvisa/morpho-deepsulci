@@ -1,3 +1,5 @@
+from .labeling import SulciDeepLabeling
+from .training import SulciDeepTraining
 
 _doc_path = None
 
