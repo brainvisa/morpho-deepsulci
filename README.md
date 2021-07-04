@@ -11,7 +11,7 @@ If you want to appply the model on your own dataset, the trained model will be u
 In the meantime, to apply the model via docker you can use the information described here:
 https://github.com/LeonieBorne/morpho-deepsulci-docker
 
-### Borne L., Rivière D., Cachia A., Roca P., Mellerio C., Oppenheim C. and Mangin J.F., 2020. Automatic recognition of specific local cortical folding patterns. *in prep.*
+### [Borne L., Rivière D., Cachia A., Roca P., Mellerio C., Oppenheim C. and Mangin J.F., 2021. Automatic recognition of specific local cortical folding patterns. *NeuroImage*](https://doi.org/10.1016/j.neuroimage.2021.118208)
 
 The second paper proposes 3 methods to automatically classify local cortical folding patterns:
 the first one based on a Support Vector Machine (SVM) classifier,
