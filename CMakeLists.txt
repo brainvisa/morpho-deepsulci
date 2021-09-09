@@ -5,7 +5,7 @@ enable_testing()
 
 BRAINVISA_FIND_PACKAGE( capsul REQUIRED )
 BRAINVISA_FIND_PACKAGE( aims-free REQUIRED )
-BRAINVISA_FIND_PACKAGE( sulci-private )
+BRAINVISA_FIND_PACKAGE( sulci-nonfree )
 BRAINVISA_FIND_PACKAGE( axon QUIET )
 BRAINVISA_FIND_PACKAGE( morphologist-gpl QUIET )
 
@@ -13,8 +13,8 @@ BRAINVISA_DEPENDENCY( RUN DEPENDS "capsul" RUN
                       ">= ${capsul_VERSION_MAJOR}.${capsul_VERSION_MINOR}" )
 BRAINVISA_DEPENDENCY( RUN DEPENDS "aims-free" RUN
                       ">= ${aims-free_VERSION_MAJOR}.${aims-free_VERSION_MINOR}" )
-BRAINVISA_DEPENDENCY( RUN DEPENDS "sulci-private" RUN
-                      ">= ${sulci-private_VERSION_MAJOR}.${sulci-private_VERSION_MINOR}" )
+BRAINVISA_DEPENDENCY( RUN DEPENDS "sulci-nonfree" RUN
+                      ">= ${sulci-nonfree_VERSION_MAJOR}.${sulci-nonfree_VERSION_MINOR}" )
 BRAINVISA_DEPENDENCY( RUN DEPENDS "python-numpy" RUN )
 BRAINVISA_DEPENDENCY( RUN DEPENDS "python-pandas" RUN )
 BRAINVISA_DEPENDENCY( RUN DEPENDS "python-torch" RUN )
