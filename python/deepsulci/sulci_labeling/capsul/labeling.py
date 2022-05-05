@@ -2,23 +2,8 @@
 UNET Labeling Module
 '''
 
-from __future__ import print_function
-from __future__ import absolute_import
-from ...deeptools.dataset import extract_data
-from ..method.cutting import cutting
-from ..method.unet import UnetSulciLabeling
-from soma.aimsalgo.sulci import graph_pointcloud
-from soma import aims
-from soma import aimsalgo
 from capsul.api import Process
-from collections import Counter
-import traits.api as traits
-import pandas as pd
-import numpy as np
-import time
-import json
-import six
-from six.moves import range
+from soma.controller import File, field
 
 
 class SulciDeepLabeling(Process):
@@ -30,35 +15,37 @@ class SulciDeepLabeling(Process):
     will abort with an error (thus will not hang the whole machine).
     '''
 
-    def __init__(self):
-        super(SulciDeepLabeling, self).__init__()
-        self.add_trait('graph', traits.File(
-            output=False, desc='input graph to segment'))
-        self.add_trait('roots', traits.File(
-            output=False, desc='root file corresponding to the input graph'))
-        self.add_trait('model_file', traits.File(
-            output=False, desc='file (.mdsm) storing neural network'
-                               ' parameters'))
-        self.add_trait('param_file', traits.File(
-            output=False, desc='file (.json) storing the hyperparameters'
-                               ' (cutting threshold)'))
-        self.add_trait('rebuild_attributes', traits.Bool(True, output=False))
-        self.add_trait('skeleton', traits.File(
-            output=False,
-            desc='skeleton file corresponding to the input graph'))
-        self.add_trait('allow_multithreading', traits.Bool(True, output=False))
+    graph: File = field(doc='input graph to segment')
+    roots: File = field(doc='root file corresponding to the input graph')
+    model_file: File = field(doc='file (.mdsm) storing neural network'
+                                 ' parameters')
+    param_file: File = field(doc='file (.json) storing the hyperparameters'
+                                 ' (cutting threshold)')
+    rebuild_attributes: bool = False
+    skeleton: File = field(
+        doc='skeleton file corresponding to the input graph')
+    allow_multithreading: bool = True
 
-        self.add_trait('labeled_graph', traits.File(
-            output=True, desc='output labeled graph'))
-        self.add_trait('cuda', traits.Int(
-            -1,
-            output=False, desc='device on which to run the training'
-                               '(-1 for cpu, i>=0 for the i-th gpu)'))
-        self.add_trait('fix_random_seed',
-                       traits.Bool(False, output=False,
-                                   desc='Use same random sequence'))
+    labeled_graph: File = field(write=True, doc='output labeled graph')
+    cuda: int = field(default=-1,
+                      doc='device on which to run the training'
+                          '(-1 for cpu, i>=0 for the i-th gpu)')
+    fix_random_seed: bool = field(default=False,
+                                  doc='Use same random sequence')
 
-    def _run_process(self):
+    def execution(self, context=None):
+        from ...deeptools.dataset import extract_data
+        from ..method.cutting import cutting
+        from ..method.unet import UnetSulciLabeling
+        from soma.aimsalgo.sulci import graph_pointcloud
+        from soma import aims
+        from soma import aimsalgo
+        from collections import Counter
+        import pandas as pd
+        import numpy as np
+        import time
+        import json
+
         if self.fix_random_seed:
             import torch
             torch.manual_seed(0)
