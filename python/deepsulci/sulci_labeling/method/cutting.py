@@ -9,6 +9,13 @@ import numpy as np
 from six.moves import range
 from six.moves import zip
 
+# a typo has apparently been corrected in sklearn, but now there are
+# incompatible functions names depending on the version of sklearn installed
+# on the system.
+# Let's monkey-patch it if it's an old one.
+if not hasattr(metrics, 'calinski_harabasz_score'):
+    metrics.calinski_harabasz_score = metrics.calinski_harabaz_score
+
 
 def cutting(y_scores, y_vert, bck, threshold, vs=1.):
     '''
@@ -65,7 +72,7 @@ def cutting(y_scores, y_vert, bck, threshold, vs=1.):
                         linkage='ward').fit(cl_scores)
                     label = ward.labels_
                     if Counter(label).most_common()[-1][1] > 1:
-                        ch_score = metrics.calinski_harabaz_score(
+                        ch_score = metrics.calinski_harabasz_score(
                             cl_scores, label)
                         if ch_score > threshold:
                             test_cut = True
