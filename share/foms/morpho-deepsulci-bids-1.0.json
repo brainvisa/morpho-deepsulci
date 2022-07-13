@@ -1,0 +1,110 @@
+{
+    "fom_name": "morpho-deepsulci-bids-1.0",
+
+    "fom_import": ["formats-brainvisa-1.0", "brainvisa-formats-3.2.0",
+                   "shared-brainvisa-1.0", "morphologist-bids-1.0"],
+
+    "attribute_definitions" : {
+      "session": {"default_value": "1"},
+      "acquisition" : {"default_value" : "default_acquisition"},
+      "analysis" : {"default_value" : "default_analysis"},
+      "sulci_recognition_session" :  {"default_value" : "default_session"},
+      "graph_version": {"default_value": "3.1"},
+      "model_id": {"default_value": "custom_model"}
+    },
+
+    "shared_patterns": {
+      "acquisition": "sub-<subject>/ses-<session>/anat/t1mri/<acquisition>",
+      "analysis": "{acquisition}/<analysis>",
+      "recognition_analysis": "{analysis}/folds/<graph_version>/<sulci_recognition_session>_auto",
+    },
+
+    "processes" : {
+        "SulciDeepLabeling" : {
+            "graph": [
+                ["input:{analysis}/folds/<graph_version>/<side><subject>",
+                "Graph and data",
+                {"side": "L", "labelled": "No"}],
+                ["input:{analysis}/folds/<graph_version>/<side><subject>",
+                "Graph and data",
+                {"side": "R", "labelled": "No"}]
+            ],
+            "roots": [
+                ["input:{analysis}/segmentation/<side>roots_<subject>",
+                 "images", {"side":"L"}],
+                ["input:{analysis}/segmentation/<side>roots_<subject>",
+                 "images", {"side":"R"}]
+            ],
+            "skeleton": [
+                ["input:{analysis}/segmentation/<side>skeleton_<subject>",
+                 "images", {"side":"L"}],
+                ["input:{analysis}/segmentation/<side>skeleton_<subject>",
+                 "images", {"side":"R"}]
+            ],
+            "param_file": [
+                ["shared:models/models_2019/cnn_models/sulci_unet_model_params_left",
+                 "JSON file", {"side": "L"}],
+                ["shared:models/models_2019/cnn_models/sulci_unet_model_params_right",
+                 "JSON file", {"side": "R"}]
+            ],
+            "model_file": [
+                ["shared:models/models_2019/cnn_models/sulci_unet_model_left",
+                 "Deep model file", {"side": "L"}],
+                ["shared:models/models_2019/cnn_models/sulci_unet_model_right",
+                 "Deep model file", {"side": "R"}]
+            ],
+            "labeled_graph": [
+                ["output:{recognition_analysis}/<side><subject>_<sulci_recognition_session>_auto",
+                    "Graph and data",
+                 {"side": "L", "labelled": "Yes"}],
+                ["output:{recognition_analysis}/<side><subject>_<sulci_recognition_session>_auto",
+                    "Graph and data",
+                 {"side": "R", "labelled": "Yes"}]
+            ]
+        },
+        "SulciDeepTraining" : {
+            "graphs": [
+                ["output:{recognition_analysis}/<side><subject>_<sulci_recognition_session>_manual",
+                    "Graph and data",
+                 {"side": "L", "labelled": "Yes", "manually_labelled": "Yes"}],
+                ["output:{recognition_analysis}/<side><subject>_<sulci_recognition_session>_manual",
+                    "Graph and data",
+                 {"side": "R", "labelled": "Yes", "manually_labelled": "Yes"}]
+            ],
+            "graphs_notcut": [
+                ["input:{analysis}/folds/<graph_version>/<side><subject>",
+                "Graph and data",
+                {"side": "L", "labelled": "No"}],
+                ["input:{analysis}/folds/<graph_version>/<side><subject>",
+                "Graph and data",
+                {"side": "R", "labelled": "No"}]
+            ],
+            "translation_file":
+                [[
+                    "shared:nomenclature/translation/sulci_model_2018",
+                    [
+                        "Label Translation",
+                        "DEF Label Translation"
+                    ]
+                ]],
+            "param_file": [
+                ["output:models/<model_id>/cnn_models/sulci_unet_model_params_left",
+                 "JSON file", {"side": "L"}],
+                ["output:models/<model_id>/cnn_models/sulci_unet_model_params_right",
+                 "JSON file", {"side": "R"}]
+            ],
+            "model_file": [
+                ["output:models/<model_id>/cnn_models/sulci_unet_model_left",
+                 "Deep model file", {"side": "L"}],
+                ["output:models/<model_id>/cnn_models/sulci_unet_model_right",
+                 "Deep model file", {"side": "R"}]
+            ],
+            "traindata_file": [
+                ["output:models/<model_id>/cnn_models/sulci_unet_model_traindata_left",
+                 "JSON file", {"side": "L"}],
+                ["output:models/<model_id>/cnn_models/sulci_unet_model_traindata_right",
+                 "JSON file", {"side": "R"}]
+            ],
+        }
+    }
+}
