@@ -139,5 +139,6 @@ class SulciDeepLabeling(Process):
 
         graph['label_property'] = 'label'
         # save graph
-        aims.write(graph, self.labeled_graph)
+        aims.write(graph, self.labeled_graph,
+                   options={"save_only_modified": False})
         print('Labeling took %i sec.' % (time.time() - start_time))
