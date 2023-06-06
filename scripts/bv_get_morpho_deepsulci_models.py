@@ -33,7 +33,8 @@ class Context(object):
         os.close(tfile[0])
         return filename
 
-download_url = 'ftp://ftp.cea.fr/pub/dsv/anatomist/data'
+#download_url = 'ftp://ftp.cea.fr/pub/dsv/anatomist/data'
+download_url = 'https://brainvisa.info/download/data'
 modelversion = '2019'
 
 parser = OptionParser(
@@ -79,7 +80,8 @@ if not os.path.exists(destdir):
     os.makedirs(destdir)
 context.write('install in dir:', destdir)
 
-if download_url.startswith('ftp://'):
+if download_url.startswith('ftp://') or download_url.startswith('https://') \
+        or download_url.startswith('http://'):
     local_files = False
 else:
     local_files = True
