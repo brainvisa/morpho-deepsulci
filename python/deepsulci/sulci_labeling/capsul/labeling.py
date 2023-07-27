@@ -10,23 +10,28 @@ class SulciDeepLabeling(Process):
     '''
     Process to label a new graph using a 3D U-Net convolutional neural network.
 
-    The process can work using a GPU or on CPU. It requires a fair amount of RAM
-    memory (about 4-5 GB). If not enough memory can be allocated, the process
-    will abort with an error (thus will not hang the whole machine).
+    The process can work using a GPU or on CPU. It requires a fair amount of
+    RAM memory (about 4-5 GB). If not enough memory can be allocated, the
+    process will abort with an error (thus will not hang the whole machine).
     '''
 
-    graph: File = field(doc='input graph to segment')
-    roots: File = field(doc='root file corresponding to the input graph')
-    model_file: File = field(doc='file (.mdsm) storing neural network'
+    graph: File = field(type_=File, doc='input graph to segment')
+    roots: File = field(type_=File,
+                        doc='root file corresponding to the input graph')
+    model_file: File = field(type_=File,
+                             doc='file (.mdsm) storing neural network'
                                  ' parameters')
-    param_file: File = field(doc='file (.json) storing the hyperparameters'
+    param_file: File = field(type_=File,
+                             doc='file (.json) storing the hyperparameters'
                                  ' (cutting threshold)')
     rebuild_attributes: bool = False
     skeleton: File = field(
+        type_=File,
         doc='skeleton file corresponding to the input graph')
     allow_multithreading: bool = True
 
-    labeled_graph: File = field(write=True, doc='output labeled graph')
+    labeled_graph: File = field(type_=File, write=True,
+                                doc='output labeled graph')
     cuda: int = field(default=-1,
                       doc='device on which to run the training'
                           '(-1 for cpu, i>=0 for the i-th gpu)')
@@ -53,7 +58,7 @@ class SulciDeepLabeling(Process):
                 import torch.cudnn
                 torch.cudnn.deterministic = True
                 torch.backends.cudnn.benchmark = False
-            except:
+            except Exception:
                 pass
             import random
             random.seed(0)
@@ -74,7 +79,7 @@ class SulciDeepLabeling(Process):
         # voxel labeling
         graph = aims.read(self.graph)
         data = extract_data(graph)
-        data = {k: np.asarray(v) for k, v in six.iteritems(data)}
+        data = {k: np.asarray(v) for k, v in data.items()}
 
         _, y_pred, y_scores = method.labeling(
             self.graph, data['bck2'], ['unknown']*len(data['bck2']))
