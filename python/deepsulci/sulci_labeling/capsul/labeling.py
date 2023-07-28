@@ -38,7 +38,7 @@ class SulciDeepLabeling(Process):
     fix_random_seed: bool = field(default=False,
                                   doc='Use same random sequence')
 
-    def execution(self, context=None):
+    def execute(self, context=None):
         from ...deeptools.dataset import extract_data
         from ..method.cutting import cutting
         from ..method.unet import UnetSulciLabeling
