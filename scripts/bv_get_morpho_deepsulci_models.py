@@ -33,7 +33,6 @@ class Context(object):
         os.close(tfile[0])
         return filename
 
-#download_url = 'ftp://ftp.cea.fr/pub/dsv/anatomist/data'
 download_url = 'https://brainvisa.info/download/data'
 modelversion = '2019'
 
@@ -46,7 +45,7 @@ parser.add_option('-i', '--input',
 parser.add_option('-v', '--version',
                   help='model version, default: %s' % modelversion)
 parser.add_option('-t', '--timeout', type='float',
-                  help='ftp timeout (in seconds), default: 15', default=15)
+                  help='timeout (in seconds), default: 15', default=15)
 parser.add_option('-s', '--silent', action='store_true',
                   help='do not raise an error when the timeout fails')
 parser.add_option('--check', action='store_true',
