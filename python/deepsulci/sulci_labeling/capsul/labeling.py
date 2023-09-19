@@ -24,7 +24,7 @@ class SulciDeepLabeling(Process):
     param_file: File = field(type_=File,
                              doc='file (.json) storing the hyperparameters'
                                  ' (cutting threshold)')
-    rebuild_attributes: bool = False
+    rebuild_attributes: bool = True
     skeleton: File = field(
         type_=File,
         doc='skeleton file corresponding to the input graph')
