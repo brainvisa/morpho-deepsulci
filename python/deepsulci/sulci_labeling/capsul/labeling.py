@@ -19,9 +19,11 @@ class SulciDeepLabeling(Process):
     roots: File = field(type_=File,
                         doc='root file corresponding to the input graph')
     model_file: File = field(type_=File,
+                             dataset='shared',
                              doc='file (.mdsm) storing neural network'
                                  ' parameters')
     param_file: File = field(type_=File,
+                             dataset='shared',
                              doc='file (.json) storing the hyperparameters'
                                  ' (cutting threshold)')
     rebuild_attributes: bool = True
