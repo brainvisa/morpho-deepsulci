@@ -32,7 +32,7 @@ class OptimizedPatchMatch(object):
 
         list_df_ann = []
         for k in range(self.k):
-            start_time = time.clock()
+            start_time = time.perf_counter()
             df_ann = self.initialization(distmap, dnum, distmap_list, bck_list,
                                          bckmap_list, proba_list)
             for j in range(self.j):
@@ -40,7 +40,7 @@ class OptimizedPatchMatch(object):
                                         bckmap_list, dnum)
             list_df_ann.append(df_ann)
             print('OPM (%i/%i) took %i s.' %
-                  (k+1, self.k, time.clock()-start_time))
+                  (k+1, self.k, time.perf_counter()-start_time))
         return list_df_ann
 
     def initialization(self, distmap, dnum,

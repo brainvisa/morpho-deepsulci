@@ -118,7 +118,8 @@ class SulciDeepLabeling(Process):
             skel = aims.read(self.skeleton, 1)
             inside = 0
             outside = 11
-            fat = aims.FoldGraphAttributes(skel, graph, None, inside, outside)
+            fat = aims.FoldGraphAttributes(skel, graph, None, inside, outside,
+                                           True, [3, 3])
             if hasattr(fat, 'setMaxThreads'):
                 if self.allow_multithreading:
                     threads = 0
@@ -132,5 +133,6 @@ class SulciDeepLabeling(Process):
 
         graph['label_property'] = 'label'
         # save graph
-        aims.write(graph, self.labeled_graph)
+        aims.write(graph, self.labeled_graph,
+                   options={"save_only_modified": False})
         print('Labeling took %i sec.' % (time.time() - start_time))

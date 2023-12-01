@@ -1,4 +1,4 @@
-cmake_minimum_required( VERSION 2.6 )
+cmake_minimum_required( VERSION 3.10 )
 find_package( brainvisa-cmake REQUIRED )
 BRAINVISA_PROJECT()
 enable_testing()
@@ -39,7 +39,7 @@ BRAINVISA_COPY_DIRECTORY( "${CMAKE_CURRENT_SOURCE_DIR}/share/foms"
 #     share/brainvisa-share-${brainvisa-share_VERSION_MAJOR}.${brainvisa-share_VERSION_MINOR}/models
 #     ${PROJECT_NAME} )
 
-set( MDS_MODEL_DOWNLOAD_SOURCE "ftp:///ftp.cea.fr/pub/dsv/anatomist/data" CACHE FILEPATH "URL for Morpho-DeepSulci models data download" )
+set( MDS_MODEL_DOWNLOAD_SOURCE "https://brainvisa.info/download/data" CACHE STRING "URL for Morpho-DeepSulci models data download" )
 
 set( get_models_cmd
   "${CMAKE_CURRENT_SOURCE_DIR}/scripts/bv_get_morpho_deepsulci_models.py" )
