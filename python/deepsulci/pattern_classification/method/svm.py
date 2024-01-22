@@ -8,7 +8,15 @@ from sklearn.neighbors import NearestNeighbors
 from sklearn.model_selection import StratifiedKFold
 from sklearn import preprocessing
 from sklearn.svm import SVC
-from pcl import registration as reg
+try:
+    from pcl import registration as reg
+except ImportError:
+    import sys
+    # allow to build docs even in pcl.registration is missing
+    # ubuntu 22.04 ships python-pcl without this module.
+    if 'capsul.sphinxext' not in sys.modules:
+        raise
+    print('pcl.registration missing !')
 
 import numpy as np
 import json
