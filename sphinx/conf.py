@@ -305,7 +305,7 @@ extlinks = {
     'connectomist': ('../../connectomist-' + version + '/%s', 'connectomist '),
     'connectomistusr': ('%s', 'connectomist '),
     'brainrat': ('../../brainrat-gpl-' + version + '/brainrat_man/en/html/%s', 'brainrat '),
-    'web': ('http://brainvisa.info/%s', 'brainvisa '),
+    'web': ('https://brainvisa.info/%s', 'brainvisa '),
     'documentation': ('../../%s', 'docs '),
 }
 
@@ -321,7 +321,7 @@ intersphinx_mapping = {
               None),
     'somaworkflow': (os.path.join(docpath, 'soma-workflow-'
                                   + somaworkflow_version + '/sphinx'), None),
-    'python': ('http://docs.python.org/%d.%d' % sys.version_info[:2], None),
+    'python': ('https://docs.python.org/%d.%d' % sys.version_info[:2], None),
 }
 
 # generate pipeline and processes docs
