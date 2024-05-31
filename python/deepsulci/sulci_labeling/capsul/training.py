@@ -1,9 +1,7 @@
-'''
+"""
 UNET Training Module
-'''
+"""
 
-from __future__ import print_function
-from __future__ import absolute_import
 from ...deeptools.dataset import extract_data
 from ..method.unet import UnetSulciLabeling
 from ..method.cutting import cutting
@@ -12,7 +10,7 @@ from sklearn.model_selection import KFold, train_test_split
 from capsul.api import Process
 from soma import aims
 from datetime import timedelta
-import traits.api as traits
+from soma.controller import File, field
 import numpy as np
 import pandas as pd
 import json
@@ -20,13 +18,10 @@ import torch
 import sigraph
 import os
 import time
-import six
-from six.moves import range
-from six.moves import zip
 
 
 class SulciDeepTraining(Process):
-    '''
+    """
     Process to train a UNET neural network to automatically label the sulci.
 
     This process consists of four steps. Each step depends on the previous
@@ -56,49 +51,59 @@ class SulciDeepTraining(Process):
 
     **Warning:** Graphs should be of the same side!
 
-    '''
+    """
 
-    def __init__(self):
-        super(SulciDeepTraining, self).__init__()
-        self.add_trait('graphs', traits.List(traits.File(output=False),
-                                             desc='training base graphs'))
-        self.add_trait('graphs_notcut', traits.List(
-            traits.File(output=False),
-            desc='training base graphs before manual cutting of the'
-                 ' elementary folds'))
-        self.add_trait('cuda', traits.Int(
-            0,
-            output=False, desc='device on which to run the training'
-                               '(-1 for cpu, i>=0 for the i-th gpu)'))
-        self.add_trait('translation_file', traits.File(
-            output=False, optional=True,
-            desc='file (.trl) containing the translation of the sulci to'
-                 'applied on the training base graphs (optional)'))
-        self.add_trait('step_1', traits.Bool(
-            True, output=False, optional=True,
-            desc='perform the data extraction step from the graphs'))
-        self.add_trait('step_2', traits.Bool(
-            True, output=False, optional=True,
-            desc='perform the hyperparameter tuning step'
-                 ' (learning rate and momentum)'))
-        self.add_trait('step_3', traits.Bool(
-            True, output=False, optional=True,
-            desc='perform the model training step'))
-        self.add_trait('step_4', traits.Bool(
-            True, output=False, optional=True,
-            desc='perform the cutting hyperparameter tuning step'))
+    graphs: field(type_=list[File], doc="training base graphs")
+    graphs_notcut: field(
+        list[File],
+        doc="training base graphs before manual cutting of the" " elementary folds",
+    )
+    cuda: field(
+        type_=int,
+        doc="device on which to run the training" "(-1 for cpu, i>=0 for the i-th gpu)",
+    ) = 0
+    translation_file: field(
+        type_=File,
+        optional=True,
+        doc="file (.trl) containing the translation of the sulci to"
+        "applied on the training base graphs (optional)",
+    )
+    step_1: field(
+        type_=bool,
+        optional=True,
+        doc="perform the data extraction step from the graphs",
+    ) = True
+    step_2: field(
+        type_=bool,
+        optional=True,
+        doc="perform the hyperparameter tuning step" " (learning rate and momentum)",
+    ) = True
+    step_3: field(
+        type_=bool,
+        optional=True,
+        doc="perform the model training step",
+    ) = True
+    step_4: field(
+        type_=bool,
+        optional=True,
+        doc="perform the cutting hyperparameter tuning step",
+    ) = True
+    model_file: field(
+        type_=File, write=True, doc="file (.mdsm) storing neural network parameters"
+    )
+    param_file: field(
+        type_=File,
+        write=True,
+        doc="file (.json) storing the hyperparameters"
+        " (learning rate, momentum, cutting threshold)",
+    )
+    traindata_file: field(
+        type_=File,
+        write=True,
+        doc="file (.json) storing the data extracted" " from the training base graphs",
+    )
 
-        self.add_trait('model_file', traits.File(
-            output=True,
-            desc='file (.mdsm) storing neural network parameters'))
-        self.add_trait('param_file', traits.File(
-            output=True, desc='file (.json) storing the hyperparameters'
-                              ' (learning rate, momentum, cutting threshold)'))
-        self.add_trait('traindata_file', traits.File(
-            output=True, desc='file (.json) storing the data extracted'
-                              ' from the training base graphs'))
-
-    def _run_process(self):
+    def execution(self, context):
         agraphs = np.asarray(self.graphs)
         agraphs_notcut = np.asarray(self.graphs_notcut)
         if os.path.exists(self.translation_file):
@@ -107,15 +112,15 @@ class SulciDeepTraining(Process):
             trfile = self.translation_file
         else:
             trfile = None
-            print('Translation file not found.')
+            print("Translation file not found.")
 
         # compute sulci_side_list
         if self.step_1:
             print()
-            print('--------------------------------')
-            print('---         STEP (1/4)       ---')
-            print('--- EXTRACT DATA FROM GRAPHS ---')
-            print('--------------------------------')
+            print("--------------------------------")
+            print("---         STEP (1/4)       ---")
+            print("--- EXTRACT DATA FROM GRAPHS ---")
+            print("--------------------------------")
             print()
             start = time.time()
 
@@ -126,9 +131,9 @@ class SulciDeepTraining(Process):
                 if trfile is not None:
                     flt.translate(graph)
                 data = extract_data(graph)
-                dict_bck2[gfile] = data['bck2']
-                dict_names[gfile] = data['names']
-                for n in data['names']:
+                dict_bck2[gfile] = data["bck2"]
+                dict_names[gfile] = data["names"]
+                for n in data["names"]:
                     sulci_side_list.add(n)
             sulci_side_list = sorted(list(sulci_side_list))
 
@@ -137,61 +142,71 @@ class SulciDeepTraining(Process):
                     param = json.load(f)
             else:
                 param = {}
-            param['sulci_side_list'] = [str(s) for s in sulci_side_list]
-            with open(self.param_file, 'w') as f:
+            param["sulci_side_list"] = [str(s) for s in sulci_side_list]
+            with open(self.param_file, "w") as f:
                 json.dump(param, f)
 
             traindata = {}
-            traindata['dict_bck2'] = dict_bck2
-            traindata['dict_names'] = dict_names
-            with open(self.traindata_file, 'w') as f:
+            traindata["dict_bck2"] = dict_bck2
+            traindata["dict_names"] = dict_names
+            with open(self.traindata_file, "w") as f:
                 json.dump(traindata, f)
             end = time.time()
             print()
-            print("STEP 1 took %s" % str(timedelta(seconds=int(end-start))))
+            print("STEP 1 took %s" % str(timedelta(seconds=int(end - start))))
             print()
         else:
             with open(self.param_file) as f:
                 param = json.load(f)
-            sulci_side_list = param['sulci_side_list']
+            sulci_side_list = param["sulci_side_list"]
 
             with open(self.traindata_file) as f:
                 traindata = json.load(f)
-            dict_bck2 = traindata['dict_bck2']
-            dict_names = traindata['dict_names']
+            dict_bck2 = traindata["dict_bck2"]
+            dict_names = traindata["dict_names"]
 
         # init method
-        sslist = [ss for ss in sulci_side_list if not ss.startswith('unknown') and not ss.startswith('ventricle')]
+        sslist = [
+            ss
+            for ss in sulci_side_list
+            if not ss.startswith("unknown") and not ss.startswith("ventricle")
+        ]
         method = UnetSulciLabeling(
-            sulci_side_list, num_filter=64, batch_size=1, cuda=self.cuda,
+            sulci_side_list,
+            num_filter=64,
+            batch_size=1,
+            cuda=self.cuda,
             translation_file=trfile,
-            dict_bck2=dict_bck2, dict_names=dict_names)
+            dict_bck2=dict_bck2,
+            dict_names=dict_names,
+        )
 
         # Inner cross validation - fix learning rate / momentum
         if self.step_2:
             print()
-            print('------------------------------------')
-            print('---           STEP (2/4)         ---')
-            print('--- FIX LEARNING RATE / MOMENTUM ---')
-            print('------------------------------------')
+            print("------------------------------------")
+            print("---           STEP (2/4)         ---")
+            print("--- FIX LEARNING RATE / MOMENTUM ---")
+            print("------------------------------------")
             print()
             start = time.time()
             n_cvinner = 3
             kf = KFold(n_splits=n_cvinner, shuffle=True, random_state=0)
             for step in range(3):
                 print()
-                print('**** STEP (%i/3) ****' % step)
+                print("**** STEP (%i/3) ****" % step)
                 print()
                 result_matrix = None
                 cvi = 1
                 for train, test in kf.split(self.graphs):
                     print()
-                    print('** CV (%i/3) **' % cvi)
+                    print("** CV (%i/3) **" % cvi)
                     print()
                     glist_train = agraphs[train]
                     glist_test = agraphs[test]
                     result_m = method.cv_inner(
-                        glist_train, glist_test, self.param_file, step)
+                        glist_train, glist_test, self.param_file, step
+                    )
 
                     if result_matrix is None:
                         result_matrix = result_m
@@ -201,49 +216,49 @@ class SulciDeepTraining(Process):
                     cvi += 1
 
                 print()
-                print('** FIND HYPERPARAMETERS **')
+                print("** FIND HYPERPARAMETERS **")
                 print()
-                method.find_hyperparameters(
-                    result_matrix, self.param_file, step)
+                method.find_hyperparameters(result_matrix, self.param_file, step)
             end = time.time()
             print()
-            print("STEP 2 took %s" % str(timedelta(seconds=int(end-start))))
+            print("STEP 2 took %s" % str(timedelta(seconds=int(end - start))))
             print()
         else:
             with open(self.param_file) as f:
                 param = json.load(f)
-            method.lr = param['best_lr1']
-            method.momentum = param['best_momentum']
+            method.lr = param["best_lr1"]
+            method.momentum = param["best_momentum"]
 
         # Train deep model
         if self.step_3:
             print()
-            print('------------------------')
-            print('---    STEP (3/4)    ---')
-            print('--- TRAIN DEEP MODEL ---')
-            print('------------------------')
+            print("------------------------")
+            print("---    STEP (3/4)    ---")
+            print("--- TRAIN DEEP MODEL ---")
+            print("------------------------")
             print()
             start = time.time()
             method.trained_model = None
             gfile_list_train, gfile_list_test = train_test_split(
-                self.graphs, test_size=0.1)
+                self.graphs, test_size=0.1
+            )
             method.learning(gfile_list_train, gfile_list_test)
 
-            cpu_model = method.trained_model.to(torch.device('cpu'))
+            cpu_model = method.trained_model.to(torch.device("cpu"))
             torch.save(cpu_model.state_dict(), self.model_file)
 
             end = time.time()
             print()
-            print("STEP 3 took %s" % str(timedelta(seconds=int(end-start))))
+            print("STEP 3 took %s" % str(timedelta(seconds=int(end - start))))
             print()
 
         # Inner cross validation - fix cutting threshold
         if self.step_4:
             print()
-            print('-----------------------------')
-            print('---       STEP (4/4)      ---')
-            print('--- FIX CUTTING THRESHOLD ---')
-            print('-----------------------------')
+            print("-----------------------------")
+            print("---       STEP (4/4)      ---")
+            print("--- FIX CUTTING THRESHOLD ---")
+            print("-----------------------------")
             print()
             start = time.time()
 
@@ -257,7 +272,7 @@ class SulciDeepTraining(Process):
             kf = KFold(n_splits=n_cvinner, shuffle=True, random_state=0)
             for train, test in kf.split(self.graphs):
                 print()
-                print('**** CV (%i/3) ****' % cvi)
+                print("**** CV (%i/3) ****" % cvi)
                 print()
                 glist_train = agraphs[train]
                 glist_test = agraphs[test]
@@ -265,16 +280,16 @@ class SulciDeepTraining(Process):
 
                 # train model
                 print()
-                print('** TRAIN MODEL **')
+                print("** TRAIN MODEL **")
                 print()
                 method.trained_model = None
-                method.lr = param['best_lr1']
-                method.momentum = param['best_momentum']
+                method.lr = param["best_lr1"]
+                method.momentum = param["best_momentum"]
                 method.learning(glist_train, glist_test)
 
                 # test thresholds
                 print()
-                print('** TEST THRESHOLDS **')
+                print("** TEST THRESHOLDS **")
                 print()
                 for gfile, gfile_notcut in zip(glist_test, glist_notcut_test):
                     # extract data
@@ -282,68 +297,69 @@ class SulciDeepTraining(Process):
                     if trfile is not None:
                         flt.translate(graph)
                     data = extract_data(graph)
-                    nbck = np.asarray(data['nbck'])
-                    bck2 = np.asarray(data['bck2'])
-                    names = np.asarray(data['names'])
+                    nbck = np.asarray(data["nbck"])
+                    bck2 = np.asarray(data["bck2"])
+                    names = np.asarray(data["names"])
 
                     graph_notcut = aims.read(gfile_notcut)
                     if trfile is not None:
                         flt.translate(graph_notcut)
                     data_notcut = extract_data(graph_notcut)
-                    nbck_notcut = np.asarray(data_notcut['nbck'])
-                    vert_notcut = np.asarray(data_notcut['vert'])
+                    nbck_notcut = np.asarray(data_notcut["nbck"])
+                    vert_notcut = np.asarray(data_notcut["vert"])
 
                     # compute labeling
                     _, _, yscores = method.labeling(gfile, bck2, names)
 
                     # organize dataframes
                     df = pd.DataFrame()
-                    df['point_x'] = nbck[:, 0]
-                    df['point_y'] = nbck[:, 1]
-                    df['point_z'] = nbck[:, 2]
-                    df.sort_values(by=['point_x', 'point_y', 'point_z'],
-                                   inplace=True)
+                    df["point_x"] = nbck[:, 0]
+                    df["point_y"] = nbck[:, 1]
+                    df["point_z"] = nbck[:, 2]
+                    df.sort_values(by=["point_x", "point_y", "point_z"], inplace=True)
 
                     df_notcut = pd.DataFrame()
                     nbck_notcut = np.asarray(nbck_notcut)
-                    df_notcut['vert'] = vert_notcut
-                    df_notcut['point_x'] = nbck_notcut[:, 0]
-                    df_notcut['point_y'] = nbck_notcut[:, 1]
-                    df_notcut['point_z'] = nbck_notcut[:, 2]
-                    df_notcut.sort_values(by=['point_x', 'point_y', 'point_z'],
-                                          inplace=True)
-                    if (len(df) != len(df_notcut)):
+                    df_notcut["vert"] = vert_notcut
+                    df_notcut["point_x"] = nbck_notcut[:, 0]
+                    df_notcut["point_y"] = nbck_notcut[:, 1]
+                    df_notcut["point_z"] = nbck_notcut[:, 2]
+                    df_notcut.sort_values(
+                        by=["point_x", "point_y", "point_z"], inplace=True
+                    )
+                    if len(df) != len(df_notcut):
                         print()
-                        print('ERROR no matches between %s and %s' % (
-                            gfile, gfile_notcut))
-                        print('--- Files ignored to fix the threshold')
+                        print(
+                            "ERROR no matches between %s and %s" % (gfile, gfile_notcut)
+                        )
+                        print("--- Files ignored to fix the threshold")
                         print()
                     else:
-                        df['vert_notcut'] = list(df_notcut['vert'])
+                        df["vert_notcut"] = list(df_notcut["vert"])
                         df.sort_index(inplace=True)
                         for threshold in threshold_range:
                             ypred_cut = cutting(
-                                yscores, df['vert_notcut'], bck2, threshold)
+                                yscores, df["vert_notcut"], bck2, threshold
+                            )
                             ypred_cut = [sulci_side_list[y] for y in ypred_cut]
-                            dict_scores[threshold].append((1-esi_score(
-                                names, ypred_cut, sslist))*100)
+                            dict_scores[threshold].append(
+                                (1 - esi_score(names, ypred_cut, sslist)) * 100
+                            )
                 cvi += 1
 
-            dict_mscores = {k: np.mean(v)
-                            for k, v in six.iteritems(dict_scores)}
+            dict_mscores = {k: np.mean(v) for k, v in dict_scores.items()}
 
             print()
-            for k, v in six.iteritems(dict_mscores):
-                print('threshold: %f, accuracy mean: %f' % (k, v))
-            param['cutting_threshold'] = max(dict_mscores,
-                                             key=dict_mscores.get)
+            for k, v in dict_mscores.items():
+                print("threshold: %f, accuracy mean: %f" % (k, v))
+            param["cutting_threshold"] = max(dict_mscores, key=dict_mscores.get)
             print()
-            print('Best threshold:', param['cutting_threshold'])
+            print("Best threshold:", param["cutting_threshold"])
 
-            with open(self.param_file, 'w') as f:
+            with open(self.param_file, "w") as f:
                 json.dump(param, f)
 
             end = time.time()
             print()
-            print("STEP 4 took %s" % str(timedelta(seconds=int(end-start))))
+            print("STEP 4 took %s" % str(timedelta(seconds=int(end - start))))
             print()
