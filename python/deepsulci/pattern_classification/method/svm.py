@@ -14,7 +14,7 @@ except ImportError:
     import sys
     # allow to build docs even in pcl.registration is missing
     # ubuntu 22.04 ships python-pcl without this module.
-    if 'capsul.sphinxext' not in sys.modules:
+    if 'capsul.sphinxext' not in sys.modules and 'sphinx' not in sys.argv[0]:
         raise
     print('pcl.registration missing !')
 
