@@ -65,7 +65,7 @@ class UnetSulciLabeling(object):
 
         # device
         self.cuda = cuda
-        if self.cuda is -1:
+        if self.cuda == -1:
             self.device = torch.device('cpu')
         else:
             self.device = torch.device(
