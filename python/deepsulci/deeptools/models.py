@@ -157,7 +157,7 @@ class DoubleConv(nn.Sequential):
         assert 'c' in order, "'c' (conv layer) MUST be present"
         assert 'r' in order, "'r' (ReLU layer) MUST be present"
         assert order[
-                   0] is not 'r', 'ReLU cannot be the first operation in the layer'
+                   0] != 'r', 'ReLU cannot be the first operation in the layer'
 
         for i, char in enumerate(order):
             if char == 'r':
