@@ -12,6 +12,7 @@ from soma import aims
 from soma import aimsalgo
 from capsul.api import Process
 from collections import Counter
+import soma.subprocess
 import traits.api as traits
 import pandas as pd
 import numpy as np
@@ -46,10 +47,22 @@ class SulciDeepLabeling(Process):
         self.add_trait('skeleton', traits.File(
             output=False,
             desc='skeleton file corresponding to the input graph'))
+        self.add_trait('grey_white', traits.File(
+            output=False,
+            desc='grey white mask corresponding to the input graph'))
+        self.add_trait('hemi_cortex', traits.File(
+            output=False,
+            desc=' grey+CSF mask corresponding to the input graph'))
+        self.add_trait('white_mesh', traits.File(
+            output=False,
+            desc='white surface corresponding to the input graph'))
+        self.add_trait('pial_mesh', traits.File(
+            output=False,
+            desc='pial surface corresponding to the input graph'))
         self.add_trait('allow_multithreading', traits.Bool(True, output=False))
 
-        self.add_trait('labeled_graph', traits.File(
-            output=True, desc='output labeled graph'))
+        self.add_trait('labelled_graph', traits.File(
+            output=True, desc='output labelled graph'))
         self.add_trait('cuda', traits.Int(
             -1,
             output=False, desc='device on which to run the training'
@@ -139,6 +152,13 @@ class SulciDeepLabeling(Process):
 
         graph['label_property'] = 'label'
         # save graph
-        aims.write(graph, self.labeled_graph,
+        aims.write(graph, self.labelled_graph,
                    options={"save_only_modified": False})
+        # since some cuts have been made, we need to update the voronoi and attributes that depend on it.
+        if summary['cuts'] != 0:
+            soma.subprocess.call(['AimsFoldsGraphThickness.py', '-i', self.labelled_graph,
+                                  '-c', self.hemi_cortex, '-g', self.grey_white,
+                                  '-w', self.white_mesh, '-l', self.pial_mesh,
+                                  '-o', self.labelled_graph])
+
         print('Labeling took %i sec.' % (time.time() - start_time))
