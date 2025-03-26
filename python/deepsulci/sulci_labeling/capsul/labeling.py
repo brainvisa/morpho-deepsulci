@@ -43,7 +43,6 @@ class SulciDeepLabeling(Process):
         self.add_trait('param_file', traits.File(
             output=False, desc='file (.json) storing the hyperparameters'
                                ' (cutting threshold)'))
-        self.add_trait('rebuild_attributes', traits.Bool(True, output=False))
         self.add_trait('skeleton', traits.File(
             output=False,
             desc='skeleton file corresponding to the input graph'))
@@ -133,7 +132,7 @@ class SulciDeepLabeling(Process):
             graph, result, roots)
 
         print('summary:', summary)
-        if self.rebuild_attributes and summary['cuts'] != 0:
+        if summary['cuts'] != 0:
             skel = aims.read(self.skeleton, 1)
             inside = 0
             outside = 11
