@@ -19,7 +19,7 @@ class ErrorComputation(Process):
     error rate (Elocal) described in (Perrot et al. 2011).
     In order to evaluate the impact of the pipeline variability, the error
     rates can be computed on several graphs (extracted from the same MRI scan)
-    automatically labeled. These graphs are compared to the manually labeled
+    automatically labelled. These graphs are compared to the manually labelled
     graph (true_graph).
     
     '''
@@ -29,10 +29,10 @@ class ErrorComputation(Process):
         self.add_trait('t1mri', traits.File(
             output=False, desc='MRI scan'))
         self.add_trait('true_graph', traits.File(
-            output=False, desc='corresponding graph manually labeled'))
-        self.add_trait('labeled_graphs', traits.List(
+            output=False, desc='corresponding graph manually labelled'))
+        self.add_trait('labelled_graphs', traits.List(
             traits.File(output=False),
-            desc='corresponding set of graphs automatically labeled'))
+            desc='corresponding set of graphs automatically labelled'))
         self.add_trait('sulci_side_list', traits.List(
             traits.Str(output=False),
             desc='list of sulci (e.g. S.C._right) considered to compute the'
@@ -41,7 +41,7 @@ class ErrorComputation(Process):
 
         self.add_trait('error_file', traits.File(
             output=True,
-            desc='file (.csv) storing the error rates for each labeled graph'))
+            desc='file (.csv) storing the error rates for each labelled graph'))
 
     def _run_process(self):
         # Compute voronoi
@@ -63,8 +63,8 @@ class ErrorComputation(Process):
         vor = fm.voronoiVol()
 
         # Compute error rates
-        re = pd.DataFrame(index=[str(g) for g in self.labeled_graphs])
-        for gfile in self.labeled_graphs:
+        re = pd.DataFrame(index=[str(g) for g in self.labelled_graphs])
+        for gfile in self.labelled_graphs:
             graph = aims.read(gfile)
             bck, _, labels = extract_data(graph)
             y_pred = [vor[int(round(p[0])),

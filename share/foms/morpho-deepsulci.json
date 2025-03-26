@@ -40,6 +40,30 @@
                 ["input:{analysis}/segmentation/<side>skeleton_<subject>",
                  "images", {"side":"R"}]
             ],
+            "grey_white": [
+                ["input:{analysis}/segmentation/<side>grey_white_<subject>",
+                "images", {"side":"L"}],
+                ["input:{analysis}/segmentation/<side>grey_white_<subject>",
+                "images", {"side":"R"}]
+            ],
+            "hemi_cortex": [
+                ["input:{analysis}/segmentation/<side>cortex_<subject>",
+                "images", {"side":"L"}],
+                ["input:{analysis}/segmentation/<side>cortex_<subject>",
+                "images", {"side":"R"}]
+            ],
+            "white_mesh": [
+                ["input:{analysis}/segmentation/mesh/<subject>_<side>white",
+                "mesh", {"side":"L"}],
+                ["input:{analysis}/segmentation/mesh/<subject>_<side>white",
+                "mesh", {"side":"R"}]
+            ],
+            "pial_mesh": [
+                ["input:{analysis}/segmentation/mesh/<subject>_<side>hemi",
+                "mesh", {"side":"L"}],
+                ["input:{analysis}/segmentation/mesh/<subject>_<side>hemi",
+                "mesh", {"side":"R"}]
+            ],
             "param_file": [
                 ["shared:models/models_2019/cnn_models/sulci_unet_model_params_left",
                  "JSON file", {"side": "L"}],
@@ -52,7 +76,7 @@
                 ["shared:models/models_2019/cnn_models/sulci_unet_model_right",
                  "Deep model file", {"side": "R"}]
             ],
-            "labeled_graph": [
+            "labelled_graph": [
                 ["output:{recognition_analysis}/<side><subject>_<sulci_recognition_session>_auto",
                     "Graph and data",
                  {"side": "L", "labelled": "Yes"}],
