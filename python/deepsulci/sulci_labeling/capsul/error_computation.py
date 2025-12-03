@@ -14,7 +14,7 @@ class ErrorComputation(Process):
     error rate (Elocal) described in (Perrot et al. 2011).
     In order to evaluate the impact of the pipeline variability, the error
     rates can be computed on several graphs (extracted from the same MRI scan)
-    automatically labeled. These graphs are compared to the manually labeled
+    automatically labelled. These graphs are compared to the manually labelled
     graph (true_graph).
 
     """
@@ -53,8 +53,8 @@ class ErrorComputation(Process):
         vor = fm.voronoiVol()
 
         # Compute error rates
-        re = pd.DataFrame(index=[str(g) for g in self.labeled_graphs])
-        for gfile in self.labeled_graphs:
+        re = pd.DataFrame(index=[str(g) for g in self.labelled_graphs])
+        for gfile in self.labelled_graphs:
             graph = aims.read(gfile)
             bck, _, labels = extract_data(graph)
             y_pred = [

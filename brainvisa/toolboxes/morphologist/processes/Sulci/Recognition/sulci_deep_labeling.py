@@ -34,8 +34,15 @@ def validation():
 
 signature = Signature(
     'roots', ReadDiskItem('Cortex catchment bassins',
-                          "aims readable volume formats"),
+                          'aims readable volume formats'),
     'skeleton', ReadDiskItem('Cortex skeleton',
-                             "aims readable volume formats"),
+                             'aims readable volume formats'),
+    'hemi_cortex', ReadDiskItem('CSF+GREY Mask',
+                                'aims readable volume formats'),
+    'grey_white', ReadDiskItem('Grey White Mask',
+                               'aims readable volume formats'),
+    'white_mesh', ReadDiskItem('Hemisphere White Mesh',
+                               'aims mesh formats'),
+    'pial_mesh', ReadDiskItem('Hemisphere Mesh',
+                              'aims mesh formats'),
 )
-

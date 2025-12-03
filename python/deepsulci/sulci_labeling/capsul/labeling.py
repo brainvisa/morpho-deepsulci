@@ -114,7 +114,7 @@ class SulciDeepLabeling(Process):
             graph, result, roots)
 
         print('summary:', summary)
-        if self.rebuild_attributes and summary['cuts'] != 0:
+        if summary['cuts'] != 0:
             skel = aims.read(self.skeleton, 1)
             inside = 0
             outside = 11
@@ -133,6 +133,13 @@ class SulciDeepLabeling(Process):
 
         graph['label_property'] = 'label'
         # save graph
-        aims.write(graph, self.labeled_graph,
+        aims.write(graph, self.labelled_graph,
                    options={"save_only_modified": False})
+        # since some cuts have been made, we need to update the voronoi and attributes that depend on it.
+        if summary['cuts'] != 0:
+            soma.subprocess.call(['AimsFoldsGraphThickness.py', '-i', self.labelled_graph,
+                                  '-c', self.hemi_cortex, '-g', self.grey_white,
+                                  '-w', self.white_mesh, '-l', self.pial_mesh,
+                                  '-o', self.labelled_graph])
+
         print('Labeling took %i sec.' % (time.time() - start_time))
