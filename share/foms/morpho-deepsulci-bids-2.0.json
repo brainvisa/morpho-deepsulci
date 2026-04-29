@@ -27,49 +27,32 @@
 
     "processes" : {
         "SulciDeepLabeling" : {
-            "graph": [
-                ["input:{fold}/{sub}_<side>",
-                "Graph and data",
-                {"side": "L", "labelled": "No"}],
-                ["input:{analysis}/folds/<graph_version>/<side><subject>",
-                "Graph and data",
-                {"side": "R", "labelled": "No"}]
-            ],
+            "graph": [[
+                "input:{fold}/{sub}_hemi-<side>",
+                "Graph and data"]],
             "roots": [
-                ["input:{seg}/{sub}_<side>_roots",
-                 "images", {"side":"L"}],
-                ["input:{seg}/{sub}_<side>_roots",
-                 "images", {"side":"R"}]
+                ["input:{seg}/{sub}_hemi-<side>_roots",
+                 "images"],
             ],
             "skeleton": [
-                ["input:{seg}/{sub}_<side>_skeleton",
-                 "images", {"side":"L"}],
-                ["input:{seg}/{sub}_<side>_skeleton",
-                 "images", {"side":"R"}]
+                ["input:{seg}/{sub}_hemi-<side>_skeleton",
+                 "images"],
             ],
             "grey_white": [
-                ["input:{seg}/{sub}_<side>_grey_white",
-                "images", {"side":"L"}],
-                ["input:{seg}/{sub}_<side>_grey_white",
-                "images", {"side":"R"}]
+                ["input:{seg}/{sub}_hemi-<side>_grey_white",
+                "images"],
             ],
             "hemi_cortex": [
-                ["input:{seg}/{sub}_<side>_cortex",
-                "images", {"side":"L"}],
-                ["input:{seg}/{sub}_<side>_cortex",
-                "images", {"side":"R"}]
+                ["input:{seg}/{sub}_hemi-<side>_cortex",
+                "images"],
             ],
             "white_mesh": [
-                ["input:{mesh}/{sub}_<side>_white",
-                "mesh", {"side":"L"}],
-                ["input:{mesh}/{sub}_<side>_white",
-                "mesh", {"side":"R"}]
+                ["input:{mesh}/{sub}_hemi-<side>_white",
+                "mesh"],
             ],
             "pial_mesh": [
-                ["input:{mesh}/{sub}_<side>_pial",
-                "mesh", {"side":"L"}],
-                ["input:{mesh}/{sub}_<side>_pial",
-                "mesh", {"side":"R"}]
+                ["input:{mesh}/{sub}_hemi-<side>_pial",
+                "mesh"],
             ],
             "param_file": [
                 ["shared:models/models_2019/cnn_models/sulci_unet_model_params_left",
@@ -84,28 +67,25 @@
                  "Deep model file", {"side": "R"}]
             ],
             "labelled_graph": [
-                ["output:{foldauto}/{fautosub}_<side>_auto",
+                ["output:{foldauto}/{fautosub}_hemi-<side>_auto",
                     "Graph and data",
-                 {"side": "L", "labelled": "Yes"}],
-                ["output:{foldauto}/{fautosub}_<side>_auto",
-                    "Graph and data",
-                 {"side": "R", "labelled": "Yes"}]
+                 {"labelled": "Yes"}],
             ]
         },
         "SulciDeepTraining" : {
             "graphs": [
-                ["output:{foldman}/{fautosub}_<side>_manual",
+                ["output:{foldman}/{fautosub}_hemi-<side>_manual",
                     "Graph and data",
                  {"side": "L", "labelled": "Yes", "manually_labelled": "Yes"}],
-                ["output:{foldman}/{fautosub}_<side>_manual",
+                ["output:{foldman}/{fautosub}_hemi-<side>_manual",
                     "Graph and data",
                  {"side": "R", "labelled": "Yes", "manually_labelled": "Yes"}]
             ],
             "graphs_notcut": [
-                ["input:{fold}/{sub}_<side>",
+                ["input:{fold}/{sub}_hemi-<side>",
                 "Graph and data",
                 {"side": "L", "labelled": "No"}],
-                ["input:{fold}/{sub}_<side>",
+                ["input:{fold}/{sub}_hemi-<side>",
                 "Graph and data",
                 {"side": "R", "labelled": "No"}]
             ],
