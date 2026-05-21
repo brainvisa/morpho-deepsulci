@@ -72,6 +72,7 @@
                  {"labelled": "Yes"}],
             ]
         },
+
         "SulciDeepTraining" : {
             "graphs": [
                 ["output:{foldman}/{fautosub}_hemi-<side>_manual",

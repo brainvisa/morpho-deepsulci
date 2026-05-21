@@ -2,68 +2,46 @@
     "fom_name": "morpho-deepsulci-1.0",
 
     "fom_import": ["formats-brainvisa-1.0", "brainvisa-formats-3.2.0",
-                   "shared-brainvisa-1.0", "morphologist-auto-1.0"],
+                   "shared-brainvisa-1.0", "morphologist-auto-nonoverlap-1.0"],
 
     "attribute_definitions" : {
-      "acquisition" : {"default_value" : "default_acquisition"},
-      "analysis" : {"default_value" : "default_analysis"},
-      "sulci_recognition_session" :  {"default_value" : "default_session"},
-      "graph_version": {"default_value": "3.1"},
-      "model_id": {"default_value": "custom_model"}
+        "acquisition" : {"default_value" : "default_acquisition"},
+        "analysis" : {"default_value" : "default_analysis"},
+        "sulci_recognition_session" :  {"default_value" : "default_session"},
+        "graph_version": {"default_value": "3.1"},
+        "model_id": {"default_value": "custom_model"}
     },
 
     "shared_patterns": {
-      "acquisition": "<center>/<subject>/t1mri/<acquisition>",
-      "analysis": "{acquisition}/<analysis>",
-      "recognition_analysis": "{analysis}/folds/<graph_version>/<sulci_recognition_session>_auto",
+        "acquisition": "<center>/<subject>/t1mri/<acquisition>",
+        "analysis": "{acquisition}/<analysis>",
+        "recognition_analysis": "{analysis}/folds/<graph_version>/<sulci_recognition_session>_auto",
     },
 
     "processes" : {
         "SulciDeepLabeling" : {
-            "graph": [
-                ["input:{analysis}/folds/<graph_version>/<side><subject>",
+            "graph": [[
+                "input:{analysis}/folds/<graph_version>/<side><subject>",
                 "Graph and data",
-                {"side": "L", "labelled": "No"}],
-                ["input:{analysis}/folds/<graph_version>/<side><subject>",
-                "Graph and data",
-                {"side": "R", "labelled": "No"}]
-            ],
-            "roots": [
-                ["input:{analysis}/segmentation/<side>roots_<subject>",
-                 "images", {"side":"L"}],
-                ["input:{analysis}/segmentation/<side>roots_<subject>",
-                 "images", {"side":"R"}]
-            ],
-            "skeleton": [
-                ["input:{analysis}/segmentation/<side>skeleton_<subject>",
-                 "images", {"side":"L"}],
-                ["input:{analysis}/segmentation/<side>skeleton_<subject>",
-                 "images", {"side":"R"}]
-            ],
-            "grey_white": [
-                ["input:{analysis}/segmentation/<side>grey_white_<subject>",
-                "images", {"side":"L"}],
-                ["input:{analysis}/segmentation/<side>grey_white_<subject>",
-                "images", {"side":"R"}]
-            ],
-            "hemi_cortex": [
-                ["input:{analysis}/segmentation/<side>cortex_<subject>",
-                "images", {"side":"L"}],
-                ["input:{analysis}/segmentation/<side>cortex_<subject>",
-                "images", {"side":"R"}]
-            ],
-            "white_mesh": [
-                ["input:{analysis}/segmentation/mesh/<subject>_<side>white",
-                "mesh", {"side":"L"}],
-                ["input:{analysis}/segmentation/mesh/<subject>_<side>white",
-                "mesh", {"side":"R"}]
-            ],
-            "pial_mesh": [
-                ["input:{analysis}/segmentation/mesh/<subject>_<side>hemi",
-                "mesh", {"side":"L"}],
-                ["input:{analysis}/segmentation/mesh/<subject>_<side>hemi",
-                "mesh", {"side":"R"}]
-            ],
+                {"labelled": "No"}]],
+            "roots": [[
+                "input:{analysis}/segmentation/<side>roots_<subject>",
+                 "images"]],
+            "skeleton": [[
+                "input:{analysis}/segmentation/<side>skeleton_<subject>",
+                 "images"]],
+            "grey_white": [[
+                "input:{analysis}/segmentation/<side>grey_white_<subject>",
+                "images"]],
+            "hemi_cortex": [[
+                "input:{analysis}/segmentation/<side>cortex_<subject>",
+                "images"]],
+            "white_mesh": [[
+                "input:{analysis}/segmentation/mesh/<subject>_<side>white",
+                "mesh"]],
+            "pial_mesh": [[
+                "input:{analysis}/segmentation/mesh/<subject>_<side>hemi",
+                "mesh"]],
             "param_file": [
                 ["shared:models/models_2019/cnn_models/sulci_unet_model_params_left",
                  "JSON file", {"side": "L"}],
@@ -76,15 +54,12 @@
                 ["shared:models/models_2019/cnn_models/sulci_unet_model_right",
                  "Deep model file", {"side": "R"}]
             ],
-            "labelled_graph": [
-                ["output:{recognition_analysis}/<side><subject>_<sulci_recognition_session>_auto",
-                    "Graph and data",
-                 {"side": "L", "labelled": "Yes"}],
-                ["output:{recognition_analysis}/<side><subject>_<sulci_recognition_session>_auto",
-                    "Graph and data",
-                 {"side": "R", "labelled": "Yes"}]
-            ]
+            "labelled_graph": [[
+                "output:{recognition_analysis}/<side><subject>_<sulci_recognition_session>_auto",
+                "Graph and data",
+                 {"labelled": "Yes"}]]
         },
+
         "SulciDeepTraining" : {
             "graphs": [
                 ["output:{recognition_analysis}/<side><subject>_<sulci_recognition_session>_manual",
