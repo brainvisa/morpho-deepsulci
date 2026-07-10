@@ -27,19 +27,6 @@
 
     "processes" : {
         "SulciDeepLabeling" : {
-<<<<<<< HEAD
-            "graph": [
-                ["input:{fold}/{sub}_<side>",
-                "Graph and data",
-                {"labelled": "No"}],
-            ],
-            "roots": [
-                ["input:{seg}/{sub}_<side>_roots",
-                 "images"],
-            ],
-            "skeleton": [
-                ["input:{seg}/{sub}_<side>_skeleton",
-=======
             "graph": [[
                 "input:{fold}/{sub}_hemi-<side>",
                 "Graph and data"]],
@@ -49,7 +36,6 @@
             ],
             "skeleton": [
                 ["input:{seg}/{sub}_hemi-<side>_skeleton",
->>>>>>> origin/soma-env-6.0
                  "images"],
             ],
             "grey_white": [
