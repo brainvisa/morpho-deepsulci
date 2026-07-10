@@ -30,22 +30,15 @@
             "graph": [
                 ["input:{fold}/{sub}_<side>",
                 "Graph and data",
-                {"side": "L", "labelled": "No"}],
-                ["input:{analysis}/folds/<graph_version>/<side><subject>",
-                "Graph and data",
-                {"side": "R", "labelled": "No"}]
+                {"labelled": "No"}],
             ],
             "roots": [
                 ["input:{seg}/{sub}_<side>_roots",
-                 "images", {"side":"L"}],
-                ["input:{seg}/{sub}_<side>_roots",
-                 "images", {"side":"R"}]
+                 "images"],
             ],
             "skeleton": [
                 ["input:{seg}/{sub}_<side>_skeleton",
-                 "images", {"side":"L"}],
-                ["input:{seg}/{sub}_<side>_skeleton",
-                 "images", {"side":"R"}]
+                 "images"],
             ],
             "grey_white": [
                 ["input:{seg}/{sub}_<side>_grey_white",
