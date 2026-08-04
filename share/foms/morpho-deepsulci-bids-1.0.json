@@ -20,7 +20,13 @@
     },
 
     "processes" : {
-        "SulciDeepLabeling" : {
+       "Morphologist.SulciRecognition.CNN_recognition19": {
+            ".process_attributes": {"side": "L"}
+       },
+       "Morphologist.SulciRecognition_1.CNN_recognition19": {
+            ".process_attributes": {"side": "R"}
+       },
+       "SulciDeepLabeling" : {
             "graph": [
                 ["input:{analysis}/folds/<graph_version>/<side><subject>",
                 "Graph and data",
