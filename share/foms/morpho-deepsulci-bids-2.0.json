@@ -9,6 +9,7 @@
       "bids" : {"default_value" : "run-0"},
       "analysis" : {"default_value" : "0"},
       "sulci_recognition_session" :  {"default_value" : "0"},
+      "sulci_recognition_type": {"default_value": "auto"},
       "graph_version": {"default_value": "3.1"},
       "model_id": {"default_value": "custom_model"}
     },
@@ -20,7 +21,7 @@
       "seg": "{analysis}/segmentation",
       "mesh": "{analysis}/mesh",
       "fold": "{analysis}/folds/<graph_version>",
-      "foldauto": "{fold}/sul-<sulci_recognition_session>_auto",
+      "foldauto": "{fold}/sul-<sulci_recognition_session>_<sulci_recognition_type>",
       "foldman": "{fold}/sul-<sulci_recognition_session>_manual",
       "fautosub": "{sub}_sul-<sulci_recognition_session>"
     },
@@ -67,7 +68,7 @@
                  "Deep model file", {"side": "R"}]
             ],
             "labelled_graph": [
-                ["output:{foldauto}/{fautosub}_hemi-<side>_auto",
+                ["output:{foldauto}/{fautosub}_hemi-<side>_<sulci_recognition_type>",
                     "Graph and data",
                  {"labelled": "Yes"}],
             ]

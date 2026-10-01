@@ -8,6 +8,7 @@
         "acquisition" : {"default_value" : "default_acquisition"},
         "analysis" : {"default_value" : "default_analysis"},
         "sulci_recognition_session" :  {"default_value" : "default_session"},
+        "sulci_recognition_type": {"default_value": "auto"},
         "graph_version": {"default_value": "3.1"},
         "model_id": {"default_value": "custom_model"}
     },
@@ -15,7 +16,7 @@
     "shared_patterns": {
         "acquisition": "<center>/<subject>/t1mri/<acquisition>",
         "analysis": "{acquisition}/<analysis>",
-        "recognition_analysis": "{analysis}/folds/<graph_version>/<sulci_recognition_session>_auto",
+        "recognition_analysis": "{analysis}/folds/<graph_version>/<sulci_recognition_session>_<sulci_recognition_type>",
     },
 
     "processes" : {
@@ -55,7 +56,7 @@
                  "Deep model file", {"side": "R"}]
             ],
             "labelled_graph": [[
-                "output:{recognition_analysis}/<side><subject>_<sulci_recognition_session>_auto",
+                "output:{recognition_analysis}/<side><subject>_<sulci_recognition_session>_<sulci_recognition_type>",
                 "Graph and data",
                  {"labelled": "Yes"}]]
         },
